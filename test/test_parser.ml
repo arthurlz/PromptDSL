@@ -36,7 +36,44 @@ let test_parse_error () =
   | Error _ -> ()
   | Ok _ -> Alcotest.fail "expected parse error (goal without string)"
 
+(* Exercises Compile.parse's Lexer.Error routing (an unterminated string
+   literal), which is otherwise untested. *)
+let test_lexer_error () =
+  match Compile.parse {|agent "x" { goal "oops |} with
+  | Error _ -> ()
+  | Ok _ -> Alcotest.fail "expected lexer error for unterminated string"
+
+(* Locks in the AST shapes for list<T>, optional `?`, and enum, which later
+   passes depend on but the happy-path test does not exercise. *)
+let test_schema_types () =
+  let src =
+    {|agent "a" {
+        goal "g"
+        output json {
+          tags: list<string>
+          note?: string
+          rating: enum("buy", "sell")
+        }
+      }|}
+  in
+  match Compile.parse src with
+  | Error e -> Alcotest.failf "unexpected parse error: %s" e.Error.message
+  | Ok block -> (
+      match List.nth block.Ast.block_items 1 with
+      | Ast.IOutput o -> (
+          match o.Ast.v.Ast.out_schema with
+          | Some [ tags; note; rating ] ->
+              Alcotest.(check bool) "tags is list<string>" true
+                (tags.Ast.field_ty = Ast.TList Ast.TString);
+              Alcotest.(check bool) "note optional" true note.Ast.optional;
+              Alcotest.(check bool) "rating enum" true
+                (rating.Ast.field_ty = Ast.TEnum [ "buy"; "sell" ])
+          | _ -> Alcotest.fail "expected 3 schema fields")
+      | _ -> Alcotest.fail "expected output item")
+
 let suite =
   ( "parser",
     [ Alcotest.test_case "parse ok" `Quick test_parse_ok;
-      Alcotest.test_case "parse error" `Quick test_parse_error ] )
+      Alcotest.test_case "parse error" `Quick test_parse_error;
+      Alcotest.test_case "lexer error" `Quick test_lexer_error;
+      Alcotest.test_case "schema types" `Quick test_schema_types ] )
