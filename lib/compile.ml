@@ -10,3 +10,8 @@ let parse (src : string) : (Ast.agent_block, Error.t) result =
           (Lexing.lexeme_end_p lexbuf)
       in
       Error (Error.make loc "syntax error")
+
+let parse_and_check (src : string) : (Sema.checked, Error.t list) result =
+  match parse src with
+  | Error e -> Error [ e ]
+  | Ok block -> Sema.analyze block
