@@ -31,6 +31,10 @@ let output_to_ir (o : Sema.checked_output) : Ir.output =
   | Sema.COText -> Ir.OText
   | Sema.COMarkdown -> Ir.OMarkdown
   | Sema.COJson None -> Ir.OJson None
+  (* An empty schema `output json {}` carries no constraints, so treat it the
+     same as a bare `output json` rather than emitting a schema that forbids
+     all keys. *)
+  | Sema.COJson (Some []) -> Ir.OJson None
   | Sema.COJson (Some fields) -> Ir.OJson (Some (List.map field_to_ir fields))
 
 let lower (c : Sema.checked) : Ir.t =

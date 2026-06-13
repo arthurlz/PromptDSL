@@ -116,7 +116,7 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
         add (Error.make block.block_loc "missing required 'goal'");
         None
   in
-  match List.rev !errors with
+  match !errors with
   | [] ->
       Ok
         {
@@ -125,4 +125,13 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
           steps = List.rev !steps;
           output = Option.value !output ~default:COText;
         }
-  | es -> Error es
+  | es ->
+      (* Report diagnostics in source order. Item errors are accumulated in
+         order, but block-level errors (e.g. missing goal) are added last, so
+         sort by span position. *)
+      let by_pos (a : Error.t) (b : Error.t) =
+        compare
+          (a.loc.Location.start_line, a.loc.Location.start_col)
+          (b.loc.Location.start_line, b.loc.Location.start_col)
+      in
+      Error (List.stable_sort by_pos es)

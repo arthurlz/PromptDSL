@@ -27,4 +27,17 @@ let test_lower () =
       Alcotest.(check bool) "required" true f.Ir.required
   | _ -> Alcotest.fail "expected json schema with one field"
 
-let suite = ("lower", [ Alcotest.test_case "lower" `Quick test_lower ])
+(* An empty `output json {}` schema lowers to bare json (no schema), not a
+   schema object that forbids all keys. *)
+let test_lower_empty_schema () =
+  let checked =
+    { Sema.name = "a"; goal = "g"; steps = []; output = Sema.COJson (Some []) }
+  in
+  match (Lower.lower checked).Ir.out with
+  | Ir.OJson None -> ()
+  | _ -> Alcotest.fail "empty schema should lower to OJson None"
+
+let suite =
+  ( "lower",
+    [ Alcotest.test_case "lower" `Quick test_lower;
+      Alcotest.test_case "empty schema" `Quick test_lower_empty_schema ] )

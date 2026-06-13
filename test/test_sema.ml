@@ -60,6 +60,21 @@ let test_schema_on_text () =
        (fun (d : Error.t) -> d.Error.message = "'text' output does not take a schema")
        ds)
 
+(* Block-level errors (missing goal at 1:1) must be reported before later
+   item errors, i.e. diagnostics come out in source order. *)
+let test_error_order () =
+  let ds =
+    err_or_fail {|agent "a" {
+  step { searchh "x" }
+}|}
+  in
+  match ds with
+  | first :: _ ->
+      Alcotest.(check string) "first is missing goal" "missing required 'goal'"
+        first.Error.message;
+      Alcotest.(check int) "first on line 1" 1 first.Error.loc.Location.start_line
+  | [] -> Alcotest.fail "expected errors"
+
 let suite =
   ( "sema",
     [ Alcotest.test_case "levenshtein" `Quick test_levenshtein;
@@ -69,4 +84,5 @@ let suite =
       Alcotest.test_case "missing goal" `Quick test_missing_goal;
       Alcotest.test_case "instruct no arg" `Quick test_instruct_no_arg;
       Alcotest.test_case "dup field" `Quick test_dup_field;
-      Alcotest.test_case "schema on text" `Quick test_schema_on_text ] )
+      Alcotest.test_case "schema on text" `Quick test_schema_on_text;
+      Alcotest.test_case "error order" `Quick test_error_order ] )
