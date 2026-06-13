@@ -1,1 +1,1 @@
-let () = Alcotest.run "promptdsl" [ Test_basics.suite ]
+let () = Alcotest.run "promptdsl" [ Test_basics.suite; Test_parser.suite ]

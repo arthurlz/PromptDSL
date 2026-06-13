@@ -1,0 +1,8 @@
+agent "researcher" {
+  goal "analyze TSLA earnings"
+
+  step { search "TSLA earnings" }
+  step { summarize }
+
+  output markdown
+}

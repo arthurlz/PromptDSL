@@ -3,8 +3,7 @@
  (public_name promptc.lib)
  (libraries yojson))
 
-; TODO Task 2: enable lexer/menhir
-; (ocamllex lexer)
+(ocamllex lexer)
 
-; (menhir
-;  (modules parser))
+(menhir
+ (modules parser))
