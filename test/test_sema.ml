@@ -75,6 +75,32 @@ let test_error_order () =
       Alcotest.(check int) "first on line 1" 1 first.Error.loc.Location.start_line
   | [] -> Alcotest.fail "expected errors"
 
+(* A string-token diagnostic points at the OPENING quote. In
+   `agent "a" { goal "x" goal "y" }` the second goal's string opens at
+   column 27 (1-based). *)
+let test_string_span () =
+  let ds = err_or_fail {|agent "a" { goal "x" goal "y" }|} in
+  match
+    List.find_opt (fun (d : Error.t) -> d.Error.message = "duplicate 'goal'") ds
+  with
+  | Some d ->
+      Alcotest.(check int) "line" 1 d.Error.loc.Location.start_line;
+      Alcotest.(check int) "opening-quote col" 27 d.Error.loc.Location.start_col
+  | None -> Alcotest.fail "expected duplicate 'goal' error"
+
+let test_unknown_format () =
+  let ds = err_or_fail {|agent "a" { goal "g" output josn }|} in
+  let d = List.hd ds in
+  Alcotest.(check string) "msg" "unknown output format 'josn'" d.Error.message;
+  Alcotest.(check (option string)) "hint" (Some "did you mean 'json'?") d.Error.hint
+
+let test_dup_output () =
+  let ds = err_or_fail {|agent "a" { goal "g" output text output json }|} in
+  Alcotest.(check bool) "dup output" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "duplicate 'output'")
+       ds)
+
 let suite =
   ( "sema",
     [ Alcotest.test_case "levenshtein" `Quick test_levenshtein;
@@ -85,4 +111,7 @@ let suite =
       Alcotest.test_case "instruct no arg" `Quick test_instruct_no_arg;
       Alcotest.test_case "dup field" `Quick test_dup_field;
       Alcotest.test_case "schema on text" `Quick test_schema_on_text;
-      Alcotest.test_case "error order" `Quick test_error_order ] )
+      Alcotest.test_case "error order" `Quick test_error_order;
+      Alcotest.test_case "string span" `Quick test_string_span;
+      Alcotest.test_case "unknown format" `Quick test_unknown_format;
+      Alcotest.test_case "dup output" `Quick test_dup_output ] )

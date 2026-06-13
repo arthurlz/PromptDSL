@@ -34,17 +34,30 @@ rule token = parse
   | ','            { COMMA }
   | ':'            { COLON }
   | '?'            { QUESTION }
-  | '"'            { Buffer.clear buf; string_lit lexbuf }
+  | '"'            { let start_p = Lexing.lexeme_start_p lexbuf in
+                     Buffer.clear buf;
+                     let tok = string_lit start_p lexbuf in
+                     (* Re-anchor the token start to the opening quote;
+                        sub-matches inside string_lit would otherwise leave it
+                        at the closing quote. *)
+                     lexbuf.Lexing.lex_start_p <- start_p;
+                     tok }
   | ident as id    { ident_or_keyword id }
   | eof            { EOF }
   | _ as c         { raise (Error (Printf.sprintf "unexpected character '%c'" c, loc_of lexbuf)) }
 
-and string_lit = parse
+(* String literals interpret the escapes backslash-quote, double-backslash,
+   backslash-n, and backslash-t. Any other backslash sequence is kept verbatim
+   (a backslash followed by d stays as those two characters), which is handy for
+   prose and regex inside instruction text. [start_p] is the opening-quote
+   position, used for the unterminated-string diagnostic. *)
+and string_lit start_p = parse
   | '"'        { STRING (Buffer.contents buf) }
-  | '\\' '"'   { Buffer.add_char buf '"'; string_lit lexbuf }
-  | '\\' '\\'  { Buffer.add_char buf '\\'; string_lit lexbuf }
-  | '\\' 'n'   { Buffer.add_char buf '\n'; string_lit lexbuf }
-  | '\\' 't'   { Buffer.add_char buf '\t'; string_lit lexbuf }
-  | newline    { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; string_lit lexbuf }
-  | eof        { raise (Error ("unterminated string literal", loc_of lexbuf)) }
-  | _ as c     { Buffer.add_char buf c; string_lit lexbuf }
+  | '\\' '"'   { Buffer.add_char buf '"'; string_lit start_p lexbuf }
+  | '\\' '\\'  { Buffer.add_char buf '\\'; string_lit start_p lexbuf }
+  | '\\' 'n'   { Buffer.add_char buf '\n'; string_lit start_p lexbuf }
+  | '\\' 't'   { Buffer.add_char buf '\t'; string_lit start_p lexbuf }
+  | newline    { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; string_lit start_p lexbuf }
+  | eof        { raise (Error ("unterminated string literal",
+                               Location.of_positions start_p (Lexing.lexeme_end_p lexbuf))) }
+  | _ as c     { Buffer.add_char buf c; string_lit start_p lexbuf }

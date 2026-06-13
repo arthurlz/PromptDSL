@@ -35,6 +35,15 @@ Completions request.
 - Output: `text` | `markdown` | `json` (with an optional typed schema).
 - Field types: `string`, `int`, `bool`, `enum(...)`, `list<T>`; suffix `?` marks a field optional.
 
+## OpenAI output notes
+
+- The JSON backend targets the Chat Completions API and defaults to `model:
+  "gpt-4o-mini"`; the user message is a `{{input}}` placeholder you fill in.
+- A typed `output json { ... }` becomes a `response_format` of type
+  `json_schema`; a bare `output json` uses `json_object`; `text`/`markdown`
+  emit no `response_format`. (The schema is non-strict, so optional `?` fields
+  are allowed — OpenAI's *strict* structured outputs would require every field.)
+
 ## Tests
 
     dune test

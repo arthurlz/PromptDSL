@@ -5,11 +5,16 @@ let parse (src : string) : (Ast.agent_block, Error.t) result =
   try Ok (Parser.program Lexer.token lexbuf) with
   | Lexer.Error (msg, loc) -> Error (Error.make loc msg)
   | Parser.Error ->
+      let tok = Lexing.lexeme lexbuf in
+      let msg =
+        if tok = "" then "syntax error at end of input"
+        else Printf.sprintf "syntax error near '%s'" tok
+      in
       let loc =
         Location.of_positions (Lexing.lexeme_start_p lexbuf)
           (Lexing.lexeme_end_p lexbuf)
       in
-      Error (Error.make loc "syntax error")
+      Error (Error.make loc msg)
 
 let parse_and_check (src : string) : (Sema.checked, Error.t list) result =
   match parse src with

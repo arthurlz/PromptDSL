@@ -71,9 +71,24 @@ let test_schema_types () =
           | _ -> Alcotest.fail "expected 3 schema fields")
       | _ -> Alcotest.fail "expected output item")
 
+(* Syntax errors name the offending token (or report end-of-input). *)
+let test_syntax_error_msg () =
+  match Compile.parse "agent \"x\" { goal }" with
+  | Ok _ -> Alcotest.fail "expected syntax error"
+  | Error e ->
+      Alcotest.(check string) "near token" "syntax error near '}'" e.Error.message
+
+let test_syntax_error_eof () =
+  match Compile.parse "agent \"x\" {" with
+  | Ok _ -> Alcotest.fail "expected syntax error"
+  | Error e ->
+      Alcotest.(check string) "eof" "syntax error at end of input" e.Error.message
+
 let suite =
   ( "parser",
     [ Alcotest.test_case "parse ok" `Quick test_parse_ok;
       Alcotest.test_case "parse error" `Quick test_parse_error;
       Alcotest.test_case "lexer error" `Quick test_lexer_error;
-      Alcotest.test_case "schema types" `Quick test_schema_types ] )
+      Alcotest.test_case "schema types" `Quick test_schema_types;
+      Alcotest.test_case "syntax error msg" `Quick test_syntax_error_msg;
+      Alcotest.test_case "syntax error eof" `Quick test_syntax_error_eof ] )

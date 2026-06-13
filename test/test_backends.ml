@@ -41,7 +41,34 @@ let test_openai () =
   in
   Alcotest.(check (list string)) "required" [ "rating" ] required
 
+let ir_with out =
+  { Ir.agent_name = "a"; objective = "g"; instructions = []; out }
+
+let has_member j k =
+  match j with `Assoc l -> List.mem_assoc k l | _ -> false
+
+(* response_format is present only for json output: absent for text/markdown,
+   json_object for bare json, json_schema for a typed schema. *)
+let test_response_format_gating () =
+  Alcotest.(check bool) "text: no response_format" false
+    (has_member (Backend_openai.render (ir_with Ir.OText)) "response_format");
+  Alcotest.(check bool) "markdown: no response_format" false
+    (has_member (Backend_openai.render (ir_with Ir.OMarkdown)) "response_format");
+  let open Yojson.Safe.Util in
+  let j = Backend_openai.render (ir_with (Ir.OJson None)) in
+  Alcotest.(check string) "bare json -> json_object" "json_object"
+    (j |> member "response_format" |> member "type" |> to_string)
+
+let test_prose_output_lines () =
+  Alcotest.(check bool) "markdown note" true
+    (contains (Backend_prose.render (ir_with Ir.OMarkdown))
+       "Format your answer as Markdown.");
+  Alcotest.(check bool) "text: no format note" false
+    (contains (Backend_prose.render (ir_with Ir.OText)) "Format your answer")
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
-      Alcotest.test_case "openai" `Quick test_openai ] )
+      Alcotest.test_case "openai" `Quick test_openai;
+      Alcotest.test_case "response_format gating" `Quick test_response_format_gating;
+      Alcotest.test_case "prose output lines" `Quick test_prose_output_lines ] )

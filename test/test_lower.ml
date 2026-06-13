@@ -37,7 +37,35 @@ let test_lower_empty_schema () =
   | Ir.OJson None -> ()
   | _ -> Alcotest.fail "empty schema should lower to OJson None"
 
+(* Every action verb renders to its expected instruction, with and without
+   an argument. *)
+let test_all_verbs () =
+  let step verb arg = { Sema.verb; arg } in
+  let checked =
+    {
+      Sema.name = "a";
+      goal = "g";
+      steps =
+        [ step "search" None;
+          step "extract" (Some "facts");
+          step "translate" (Some "ja");
+          step "classify" None;
+          step "instruct" (Some "Be concise");
+          step "summarize" (Some "the doc") ];
+      output = Sema.COText;
+    }
+  in
+  Alcotest.(check (list string)) "instructions"
+    [ "Search for relevant information";
+      "Extract: facts";
+      "Translate the result into: ja";
+      "Classify the result";
+      "Be concise";
+      "Summarize: the doc" ]
+    (Lower.lower checked).Ir.instructions
+
 let suite =
   ( "lower",
     [ Alcotest.test_case "lower" `Quick test_lower;
-      Alcotest.test_case "empty schema" `Quick test_lower_empty_schema ] )
+      Alcotest.test_case "empty schema" `Quick test_lower_empty_schema;
+      Alcotest.test_case "all verbs" `Quick test_all_verbs ] )
