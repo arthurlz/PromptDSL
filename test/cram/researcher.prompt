@@ -1,0 +1,12 @@
+agent "researcher" {
+  goal "analyze TSLA earnings"
+
+  step { search "TSLA earnings" }
+  step { summarize }
+
+  output json {
+    ticker:  string
+    rating:  enum("buy", "hold", "sell")
+    summary: string
+  }
+}

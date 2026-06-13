@@ -1,7 +1,8 @@
 (library
  (name promptdsl)
  (public_name promptc.lib)
- (libraries yojson))
+ (libraries yojson)
+ (modules ast error location lexer parser ir sema lower backend_prose backend_openai compile driver))
 
 (ocamllex lexer)
 

@@ -1,0 +1,3 @@
+agent "researcher" {
+  step { searchh "TSLA earnings" }
+}
