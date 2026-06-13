@@ -1,0 +1,3 @@
+(test
+ (name test_promptdsl)
+ (libraries promptdsl alcotest yojson))
