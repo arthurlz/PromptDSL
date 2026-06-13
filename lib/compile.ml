@@ -15,3 +15,13 @@ let parse_and_check (src : string) : (Sema.checked, Error.t list) result =
   match parse src with
   | Error e -> Error [ e ]
   | Ok block -> Sema.analyze block
+
+type outputs = { prose : string; json : Yojson.Safe.t }
+type outcome = Success of outputs | Failure of Error.t list
+
+let compile_string (src : string) : outcome =
+  match parse_and_check src with
+  | Error ds -> Failure ds
+  | Ok checked ->
+      let ir = Lower.lower checked in
+      Success { prose = Backend_prose.render ir; json = Backend_openai.render ir }
