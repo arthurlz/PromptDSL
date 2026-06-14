@@ -1,0 +1,21 @@
+// intent: given a ticker, fetch its latest earnings, analyze, and output a
+//   buy/hold/sell rating with a 0-100 score and a short rationale.
+// FRICTION [missing:input-params]: wanted a typed input `ticker: string`; the DSL has
+//   no input params, so the ticker is baked into the goal text and the prompt
+//   can't be reused for another ticker without editing the source.
+// FRICTION [awkward:range-constraint]: score should be 0-100; json int field
+//   works but there's no way to constrain its range.
+agent "earnings-analyst" {
+  goal "Analyze the latest quarterly earnings for TSLA and rate the stock."
+
+  step { search "TSLA latest quarterly earnings report" }
+  step { extract "revenue, EPS, guidance, margins vs. expectations" }
+  step { summarize }
+  step { classify "buy / hold / sell" }
+
+  output json {
+    rating:    enum("buy", "hold", "sell")
+    score:     int
+    rationale: string
+  }
+}

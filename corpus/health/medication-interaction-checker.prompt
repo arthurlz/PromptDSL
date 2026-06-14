@@ -1,0 +1,15 @@
+// intent: given a list of medications the user takes, flag potential interactions and
+//   advise consulting a pharmacist; informational only.
+// FRICTION [missing:input-params]: wanted `meds: list<string>` as a typed input; the
+//   list is instead written into the goal text and can't be passed at run time.
+// FRICTION [repeated:import]: the same medical disclaimer yet again -> import.
+agent "medication-interaction-checker" {
+  goal "Given that the user takes warfarin, ibuprofen, and omeprazole, flag potential interactions and advise consulting a pharmacist. Informational only, not medical advice."
+  step { search "interactions between warfarin, ibuprofen, omeprazole" }
+  step { summarize }
+  output json {
+    interactions: list<string>
+    severity:     enum("none", "minor", "moderate", "major")
+    advice:       string
+  }
+}

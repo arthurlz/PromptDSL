@@ -1,0 +1,16 @@
+// intent: given the text of a nutrition label, extract key facts and flag concerns
+//   (high added sugar, high sodium) for a general adult.
+// FRICTION [missing:long-text-input]: wanted to pass the label text as a named input;
+//   the only runtime input is the hardcoded {{input}} user message, which can't be
+//   named, typed, or combined with other inputs.
+// FRICTION [missing:float-type]: amounts (grams) want floats; only int is available.
+agent "nutrition-label-reader" {
+  goal "Read a nutrition label provided by the user and summarize calories, sugar, sodium, and fat, flagging anything notably high for a general adult."
+  step { extract "serving size, calories, added sugar, sodium, saturated fat" }
+  step { summarize }
+  output json {
+    calories: int
+    concerns: list<string>
+    summary:  string
+  }
+}

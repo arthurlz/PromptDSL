@@ -1,0 +1,18 @@
+// intent: assess whether a given ticker's dividend is sustainable over the next
+//   1-2 years, citing payout ratio, FCF coverage, and debt; output a safety grade.
+// FRICTION [missing:input-params]: wanted `ticker: string`; baked into goal, not reusable.
+// FRICTION [repeated:import]: every finance agent repeats the same "informational,
+//   not financial advice" disclaimer and the same grading rubric -- wanted `import finance`.
+// FRICTION [repeated:template]: role/goal/output skeleton duplicated across the cluster.
+agent "dividend-safety" {
+  goal "Assess whether NEE's dividend is sustainable over the next 1-2 years. Informational, not financial advice."
+
+  step { search "NEE payout ratio, free cash flow coverage, debt load, dividend history" }
+  step { extract "payout ratio, FCF coverage, net debt to EBITDA, dividend growth streak" }
+  step { summarize }
+
+  output json {
+    grade:     enum("safe", "watch", "at-risk")
+    rationale: string
+  }
+}

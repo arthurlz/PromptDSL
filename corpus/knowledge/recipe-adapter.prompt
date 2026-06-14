@@ -1,0 +1,11 @@
+// intent: adapt a given recipe to a dietary restriction (vegan/gluten-free/etc.),
+//   keeping it close to the original.
+// FRICTION [missing:multi-input]: wanted `recipe` (long text) and `restriction` as
+//   separate inputs; both crammed into the goal.
+// FRICTION [missing:long-text-input]: the recipe is a sizable text body to pass in.
+agent "recipe-adapter" {
+  goal "Adapt a classic carbonara recipe to be vegetarian while keeping it close to the original in flavor and technique."
+  step { instruct "Swap only what's necessary; explain each substitution briefly." }
+  step { summarize }
+  output markdown
+}

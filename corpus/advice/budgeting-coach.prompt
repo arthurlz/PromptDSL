@@ -1,0 +1,15 @@
+// intent: given monthly income and a list of expenses, suggest a budget (50/30/20 or
+//   similar) and flag overspending categories.
+// FRICTION [missing:multi-input]: wanted `income` plus an itemized `expenses` input;
+//   both are baked into the goal instead of passed in.
+// FRICTION [missing:float-type]: money needs floats; only int is available.
+// FRICTION [repeated:template]: advice-cluster skeleton again.
+agent "budgeting-coach" {
+  goal "Given $5000 monthly take-home and expenses of $2000 rent, $800 food, $600 car, $1200 discretionary, suggest a 50/30/20 budget and flag overspending."
+  step { extract "fixed vs. discretionary spending and their shares of income" }
+  step { summarize }
+  output json {
+    overspending: list<string>
+    suggestion:   string
+  }
+}

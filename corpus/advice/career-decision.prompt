@@ -1,0 +1,16 @@
+// intent: weigh a job offer against the current job across pay, growth, risk, and
+//   location, then give a recommendation with reasoning.
+// FRICTION [missing:multi-input]: wanted several typed inputs (offer_salary,
+//   current_salary, role, location, remote?) -- the DSL allows no inputs at all,
+//   let alone several distinct ones.
+// FRICTION [missing:float-type]: salary deltas want numbers; everything is prose here.
+agent "career-decision" {
+  goal "Weigh a $150k senior offer in Austin (hybrid) against a current $130k mid-level role in NYC (remote), across pay, growth, risk, and cost of living, and recommend."
+  step { instruct "Compare across pay, growth, risk, and cost of living; state the recommendation and the main tradeoff." }
+  step { summarize }
+  output json {
+    recommendation: enum("take-offer", "stay", "negotiate")
+    key_tradeoff:   string
+    reasoning:      string
+  }
+}

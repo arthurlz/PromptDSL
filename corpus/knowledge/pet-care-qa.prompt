@@ -1,0 +1,11 @@
+// intent: answer a pet-care question for a given species, with a safety note to see a
+//   vet for medical issues.
+// FRICTION [missing:input-params]: wanted `species: string` and `question: string`
+//   inputs; both hardcoded into the goal.
+// FRICTION [repeated:template]: identical skeleton to plant-care-qa and the other Q&A agents.
+agent "pet-care-qa" {
+  goal "Answer this cat-care question for a general owner: how often should I clean a litter box, and what are signs it points to a health issue? Advise seeing a vet for medical concerns."
+  step { instruct "Give a practical answer; add a one-line 'see a vet if' note." }
+  step { summarize }
+  output markdown
+}

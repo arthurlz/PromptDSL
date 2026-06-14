@@ -1,0 +1,10 @@
+// intent: given a situation and the relationship + desired tone, draft a sincere apology.
+// FRICTION [missing:input-params]: wanted `relationship` and `tone: enum(...)` params;
+//   hardcoded. Changing tone means editing the source.
+// FRICTION [awkward:verb-fit]: "draft an apology" is a generative task forced through
+//   `instruct`; there is no generation verb.
+agent "apology-writer" {
+  goal "Draft a sincere, warm apology to a close friend for forgetting their birthday."
+  step { instruct "Take responsibility without excuses, acknowledge the impact, and propose making it up. Match a warm, personal tone." }
+  output text
+}

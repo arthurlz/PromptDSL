@@ -1,0 +1,11 @@
+// intent: explain a concept at a chosen audience level (ELI5 / high-school / expert).
+// FRICTION [missing:input-params]: wanted `concept: string` and `level: enum(eli5,hs,expert)`;
+//   both hardcoded, so one agent = one concept at one level.
+// FRICTION [missing:conditional]: wanted the depth/vocabulary to switch on `level`;
+//   no conditional behavior, so the level is just described in prose.
+agent "concept-explainer" {
+  goal "Explain how RSA encryption works at a high-school level, using one analogy and avoiding heavy math."
+  step { instruct "Use one concrete analogy; define any term you introduce." }
+  step { summarize }
+  output markdown
+}

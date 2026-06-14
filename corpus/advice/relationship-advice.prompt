@@ -1,0 +1,11 @@
+// intent: given a described relationship situation, give balanced, non-judgmental
+//   advice and 2-3 concrete next steps.
+// FRICTION [missing:long-text-input]: the situation is a free-text blob the user
+//   should pass at run time; can only be hardcoded or shoved into the unnamed {{input}}.
+// FRICTION [repeated:template]: same skeleton as the other advice agents.
+agent "relationship-advice" {
+  goal "Give balanced, non-judgmental advice for this situation: a partner who avoids discussing finances. Offer 2-3 concrete next steps."
+  step { instruct "Acknowledge both perspectives; avoid taking sides; keep it practical." }
+  step { summarize }
+  output markdown
+}

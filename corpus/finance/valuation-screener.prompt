@@ -1,0 +1,22 @@
+// intent: given a company's key metrics (P/E, revenue growth, net margin, sector),
+//   decide if it's under-/fairly-/over-valued and explain, with a confidence 0-100.
+// FRICTION [missing:input-params]: wanted typed inputs `pe`, `growth`, `margin`,
+//   `sector`; no inputs, so the numbers are described in prose in the goal and
+//   can't be passed in at run time.
+// FRICTION [missing:float-type]: schema types are string/int/bool/enum/list only;
+//   financial ratios (P/E, margins) need floats.
+// FRICTION [repeated:template]: same role/goal/output skeleton as the other finance
+//   agents -- copy-pasted.
+agent "valuation-screener" {
+  goal "Given a company's P/E, revenue growth, net margin, and sector, judge whether it is under-, fairly-, or over-valued."
+
+  step { extract "the provided P/E, growth, margin, and sector" }
+  step { classify "undervalued / fair / overvalued" }
+  step { summarize }
+
+  output json {
+    verdict:    enum("undervalued", "fair", "overvalued")
+    confidence: int
+    rationale:  string
+  }
+}

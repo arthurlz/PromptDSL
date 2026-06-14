@@ -1,0 +1,11 @@
+// intent: given a week of sleep data (bedtimes, wake times, awakenings), give a
+//   markdown coaching writeup AND a structured set of metrics (avg hours, efficiency).
+// FRICTION [missing:multi-output]: wanted BOTH a markdown explanation and a json
+//   metrics block in one run; `output` picks exactly one form.
+// FRICTION [missing:input-params]: wanted the week of data as a typed input; hardcoded.
+agent "sleep-coach" {
+  goal "Given a week of the user's bedtimes, wake times, and night awakenings, coach them on improving sleep and report average hours and sleep efficiency."
+  step { extract "average time in bed, average hours asleep, awakenings per night" }
+  step { summarize }
+  output markdown
+}

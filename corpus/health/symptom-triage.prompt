@@ -1,0 +1,16 @@
+// intent: given a set of symptoms, classify urgency (self-care / see-GP / urgent /
+//   emergency); if any red-flag symptom is present, force "emergency".
+// FRICTION [missing:input-params]: wanted `symptoms: string` input; hardcoded.
+// FRICTION [missing:conditional]: wanted "if red-flag present -> emergency, skip the
+//   rest"; no conditional logic or early-exit in the DSL.
+// FRICTION [repeated:import]: medical disclaimer repeated again.
+agent "symptom-triage" {
+  goal "Triage the urgency of these symptoms: chest tightness and shortness of breath for 20 minutes. Not a diagnosis."
+  step { classify "self-care / see-GP / urgent / emergency" }
+  step { instruct "If any red-flag symptom (e.g. chest pain, trouble breathing) is present, return emergency and advise calling local emergency services." }
+  output json {
+    urgency:  enum("self-care", "see-GP", "urgent", "emergency")
+    red_flag: bool
+    advice:   string
+  }
+}

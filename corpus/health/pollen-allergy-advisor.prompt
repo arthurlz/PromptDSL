@@ -1,0 +1,13 @@
+// intent: given today's local pollen levels and the user's symptoms, advise whether
+//   to limit outdoor time and which OTC measures may help.
+// FRICTION [missing:input-params]: wanted `pollen_level: enum(low,med,high)` and
+//   `symptoms: string`; both hardcoded into the goal.
+// FRICTION [repeated:import]: repeats the same "not medical advice" disclaimer used
+//   across the health cluster -- wanted `import health` or a shared disclaimer.
+// FRICTION [repeated:template]: role/goal/output skeleton duplicated across cluster.
+agent "pollen-allergy-advisor" {
+  goal "Given high tree-pollen today and a user reporting sneezing and itchy eyes, advise on outdoor exposure and OTC options. Not medical advice."
+  step { instruct "Tailor advice to the reported pollen level and symptoms; say when to see a doctor." }
+  step { summarize }
+  output markdown
+}

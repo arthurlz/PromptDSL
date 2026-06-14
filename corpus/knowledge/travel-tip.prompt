@@ -1,0 +1,10 @@
+// intent: give quick, practical travel tips for a destination, trip length, and interests.
+// FRICTION [missing:input-params]: wanted `destination`, `days: int`, `interests: list<string>`
+//   as inputs; all hardcoded into the goal.
+// FRICTION [repeated:template]: Q&A-style skeleton repeated across the knowledge cluster.
+agent "travel-tip" {
+  goal "Give practical tips for a 4-day trip to Kyoto focused on temples and food: getting around, neighborhoods, and 3 must-dos."
+  step { instruct "Be concrete and current; note any seasonal or etiquette caveats." }
+  step { summarize }
+  output markdown
+}

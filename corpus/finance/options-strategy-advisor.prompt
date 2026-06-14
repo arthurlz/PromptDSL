@@ -1,0 +1,15 @@
+// intent: given the user's directional view and risk tolerance, suggest 1-2 options
+//   strategies with tradeoffs; if tolerance is low, exclude undefined-risk strategies.
+// FRICTION [missing:input-params]: wanted `view: enum(bullish,bearish,neutral)` and
+//   `risk: enum(low,med,high)` as inputs; both hardcoded into the goal.
+// FRICTION [missing:conditional]: wanted "if risk == low, exclude naked/undefined-risk
+//   strategies" -- the DSL has no conditional steps or logic.
+// FRICTION [repeated:import]: same finance disclaimer repeated again.
+agent "options-strategy-advisor" {
+  goal "For a moderately bullish view with low risk tolerance, suggest 1-2 defined-risk options strategies and their tradeoffs. Informational only."
+
+  step { instruct "Prefer defined-risk strategies; for each, state max loss, max gain, and breakeven." }
+  step { summarize }
+
+  output markdown
+}

@@ -1,0 +1,10 @@
+// intent: given a heated message the user received, draft a calm, de-escalating reply.
+// FRICTION [awkward:verb-fit]: the action is "draft a reply", but the verb set is
+//   search/summarize/extract/translate/classify/instruct -- had to express "draft"
+//   via instruct, which reads oddly for a generative task.
+// FRICTION [missing:long-text-input]: the incoming message should be a runtime input.
+agent "conflict-deescalation" {
+  goal "Draft a calm, de-escalating reply to a heated message from a coworker accusing the user of missing a deadline."
+  step { instruct "Write a reply that acknowledges feelings, states facts without blame, and proposes a next step. Keep it under 120 words." }
+  output text
+}

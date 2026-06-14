@@ -1,0 +1,14 @@
+// intent: given a macro event (e.g. "Fed holds rates, hawkish tone"), brief the
+//   likely impact on US equities, rates, and the dollar, in markdown.
+// FRICTION [missing:input-params]: wanted `event: string` as input; hardcoded into goal.
+// FRICTION [missing:interpolation]: wanted goal/steps to reference {{event}} by name
+//   so the same agent works for any event, instead of one frozen event.
+// FRICTION [repeated:template]: same skeleton as the other finance agents.
+agent "macro-brief" {
+  goal "Brief the likely market impact of the Fed holding rates steady with a hawkish tone, covering US equities, rates, and the dollar."
+
+  step { search "market reaction to a hawkish Fed hold" }
+  step { summarize }
+
+  output markdown
+}

@@ -1,0 +1,10 @@
+// intent: answer a houseplant-care question for a given plant.
+// FRICTION [missing:input-params]: wanted `plant: string` and `question: string`; hardcoded.
+// FRICTION [repeated:template]: same Q&A skeleton as pet-care-qa -- begging for a
+//   shared `template qa { ... }`.
+agent "plant-care-qa" {
+  goal "Answer this houseplant question: my monstera's leaves are yellowing -- what are the likely causes and fixes?"
+  step { instruct "List likely causes ranked by probability, each with a concrete fix." }
+  step { summarize }
+  output markdown
+}
