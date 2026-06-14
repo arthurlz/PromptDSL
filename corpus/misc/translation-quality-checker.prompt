@@ -1,0 +1,18 @@
+// intent: given a source text, a translation, and the target language, rate the
+//   translation's accuracy and fluency and list specific errors.
+// FRICTION [missing:multi-input]: this fundamentally needs THREE inputs (source,
+//   translation, target_lang). The DSL has no inputs at all -- the single hardcoded
+//   {{input}} cannot represent three distinct fields.
+// FRICTION [awkward:range-constraint]: accuracy/fluency want 0-100 scores; int only,
+//   no range.
+agent "translation-quality-checker" {
+  goal "Given a source text, its translation, and the target language, rate accuracy and fluency (0-100) and list specific errors."
+  step { extract "mistranslations, omissions, and unnatural phrasing" }
+  step { classify "overall quality: poor / fair / good / excellent" }
+  output json {
+    accuracy: int
+    fluency:  int
+    errors:   list<string>
+    overall:  enum("poor", "fair", "good", "excellent")
+  }
+}

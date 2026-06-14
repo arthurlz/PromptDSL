@@ -1,0 +1,17 @@
+// intent: extract structured fields from an unstructured text blob; ideally the CALLER
+//   supplies the schema to extract into.
+// FRICTION [missing:long-text-input]: the source text is a runtime input.
+// FRICTION [awkward:static-schema]: the output schema is fixed at author time. A real
+//   extractor wants the schema supplied per call; here every target shape needs its
+//   own agent file.
+agent "data-extractor" {
+  goal "Extract contact details from a block of unstructured text provided by the user."
+  step { extract "name, email, phone, company, role" }
+  output json {
+    name:    string
+    email:   string
+    phone:   string
+    company: string
+    role:    string
+  }
+}

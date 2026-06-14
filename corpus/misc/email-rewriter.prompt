@@ -1,0 +1,10 @@
+// intent: rewrite a user's email in a chosen tone (formal/friendly/concise) without
+//   changing meaning.
+// FRICTION [missing:input-params]: wanted `tone: enum(formal,friendly,concise)` and the
+//   email body as inputs; tone is hardcoded so one agent = one tone.
+// FRICTION [awkward:verb-fit]: "rewrite" forced through instruct; no generation verb.
+agent "email-rewriter" {
+  goal "Rewrite the user's email in a friendly but professional tone, preserving all facts and requests."
+  step { instruct "Keep the meaning identical; adjust only tone, structure, and concision." }
+  output text
+}

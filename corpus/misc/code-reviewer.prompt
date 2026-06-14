@@ -1,0 +1,11 @@
+// intent: review a code snippet in a given language for bugs, style, and security,
+//   returning prioritized findings.
+// FRICTION [missing:long-text-input]: the code is a runtime input (often long); only
+//   the unnamed {{input}} blob exists, and the goal can't reference it by name.
+// FRICTION [missing:input-params]: wanted a `language: string` param to set expectations.
+// FRICTION [awkward:verb-fit]: "review" isn't in the verb set; expressed via instruct.
+agent "code-reviewer" {
+  goal "Review a Python function provided by the user for correctness bugs, style, and security issues."
+  step { instruct "Return findings grouped as Critical / Important / Minor, each with a one-line fix." }
+  output markdown
+}

@@ -1,0 +1,10 @@
+// intent: explain a contract clause in plain language and flag anything unusual or risky.
+// FRICTION [missing:long-text-input]: the clause text is the real input; can only go
+//   into the unnamed {{input}} blob, unnamed and untyped.
+// FRICTION [repeated:import]: wants the same "not legal advice" disclaimer reused elsewhere.
+agent "legal-clause-explainer" {
+  goal "Explain a contract clause provided by the user in plain language, and flag anything unusual or one-sided. Not legal advice."
+  step { instruct "Explain in plain English, then list any clauses that favor one party or are unusually broad." }
+  step { summarize }
+  output markdown
+}
