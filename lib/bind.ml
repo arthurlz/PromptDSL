@@ -29,11 +29,13 @@ let bind (c : Sema.checked) (values : (string * string) list) : (bound, Error.t 
       if not (List.mem k declared) then
         add (Printf.sprintf "unknown input '%s' passed with --set" k))
     values;
+  (* A repeated --set k=v is last-wins, the usual CLI convention. *)
+  let latest = List.rev values in
   let resolved = Hashtbl.create 8 in
   List.iter
     (fun (i : Sema.checked_input) ->
       let v =
-        match List.assoc_opt i.ci_name values with
+        match List.assoc_opt i.ci_name latest with
         | Some v -> Some v
         | None -> i.ci_default
       in
@@ -60,6 +62,6 @@ let bind (c : Sema.checked) (values : (string * string) list) : (bound, Error.t 
       let b_content =
         match List.find_opt (fun (i : Sema.checked_input) -> i.ci_content) c.Sema.inputs with
         | Some i -> Hashtbl.find_opt resolved i.ci_name
-        | None -> if c.Sema.inputs = [] then None else Some ""
+        | None -> if c.Sema.has_input_block then Some "" else None
       in
       Ok { b_name = c.Sema.name; b_goal; b_steps; b_output = c.Sema.output; b_content }

@@ -43,6 +43,21 @@ let test_no_input_block_content_none () =
   | Ok b -> Alcotest.(check (option string)) "legacy" None b.Bind.b_content
   | Error _ -> Alcotest.fail "unexpected error"
 
+(* An empty `input {}` block is "block present, no @content" -> empty user
+   message (Some ""), distinct from no block at all (None -> legacy {{input}}). *)
+let test_empty_input_block_content () =
+  match bind {|agent "a" { input { } goal "g" }|} [] with
+  | Ok b ->
+      Alcotest.(check (option string)) "empty block -> empty user msg" (Some "")
+        b.Bind.b_content
+  | Error _ -> Alcotest.fail "unexpected error"
+
+(* A repeated --set for the same key is last-wins. *)
+let test_set_last_wins () =
+  match bind {|agent "a" { input { x: string } goal "{{x}}" }|} [ ("x", "A"); ("x", "B") ] with
+  | Ok b -> Alcotest.(check string) "last-wins" "B" b.Bind.b_goal
+  | Error _ -> Alcotest.fail "unexpected error"
+
 let suite =
   ( "bind",
     [ Alcotest.test_case "subst + default" `Quick test_subst_and_default;
@@ -50,4 +65,6 @@ let suite =
       Alcotest.test_case "type mismatch" `Quick test_type_mismatch;
       Alcotest.test_case "unknown --set" `Quick test_unknown_set;
       Alcotest.test_case "content" `Quick test_content;
-      Alcotest.test_case "no input block" `Quick test_no_input_block_content_none ] )
+      Alcotest.test_case "no input block" `Quick test_no_input_block_content_none;
+      Alcotest.test_case "empty input block" `Quick test_empty_input_block_content;
+      Alcotest.test_case "set last-wins" `Quick test_set_last_wins ] )

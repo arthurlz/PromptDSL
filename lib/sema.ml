@@ -21,6 +21,7 @@ type checked = {
   steps : checked_step list;
   output : checked_output;
   inputs : checked_input list;
+  has_input_block : bool;
 }
 
 let known_actions =
@@ -190,6 +191,7 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
           steps = List.rev !steps;
           output = Option.value !output ~default:COText;
           inputs = List.rev !inputs;
+          has_input_block = !saw_input_block;
         }
   | es ->
       (* Report diagnostics in source order. Item errors are accumulated in
