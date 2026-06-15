@@ -11,7 +11,7 @@ let find (frags : fragments) (alias : string) (name : string) : lookup_result =
 let lookup frags alias name =
   match find frags alias name with Found t -> Some t | _ -> None
 
-let resolve ~(parse_lib : string -> (Ast.def_decl list, Error.t) result)
+let resolve ~(parse_lib : string -> (Ast.lib_item list, Error.t) result)
     ~(resolver : string -> (string, string) result) (imports : Ast.import_decl list) :
     (fragments, Error.t list) result =
   let errors = ref [] in
@@ -33,7 +33,10 @@ let resolve ~(parse_lib : string -> (Ast.def_decl list, Error.t) result)
                 add imp.Ast.imp_loc
                   (Printf.sprintf "imported file %S is not a valid library: %s"
                      imp.Ast.imp_path e.Error.message)
-            | Ok defs ->
+            | Ok items ->
+                let defs =
+                  List.filter_map (function Ast.LDef d -> Some d | Ast.LTemplate _ -> None) items
+                in
                 let seen_def = Hashtbl.create 8 in
                 let pairs =
                   List.filter_map

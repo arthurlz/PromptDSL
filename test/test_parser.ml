@@ -128,11 +128,31 @@ let test_parse_import_and_agent () =
 let test_parse_library () =
   match Compile.parse_library {|def disclaimer = "x"  def rubric = "y"|} with
   | Error e -> Alcotest.failf "unexpected: %s" e.Error.message
-  | Ok [ a; b ] ->
+  | Ok [ Ast.LDef a; Ast.LDef b ] ->
       Alcotest.(check string) "1 name" "disclaimer" a.Ast.def_name;
       Alcotest.(check string) "1 text" "x" a.Ast.def_text;
       Alcotest.(check string) "2 name" "rubric" b.Ast.def_name
   | Ok _ -> Alcotest.fail "expected two defs"
+
+let test_parse_template () =
+  match Compile.parse_library {|def d = "x"  template Rater { goal "g" step { summarize } }|} with
+  | Error e -> Alcotest.failf "unexpected: %s" e.Error.message
+  | Ok [ Ast.LDef d; Ast.LTemplate t ] ->
+      Alcotest.(check string) "def" "d" d.Ast.def_name;
+      Alcotest.(check string) "tpl name" "Rater" t.Ast.tpl_name;
+      Alcotest.(check int) "tpl items" 2 (List.length t.Ast.tpl_items)
+  | Ok _ -> Alcotest.fail "expected one def then one template"
+
+let test_parse_extends () =
+  match Compile.parse {|import "s.prompt" as s
+                        agent "a" extends s.Rater { goal "g" }|} with
+  | Error e -> Alcotest.failf "unexpected: %s" e.Error.message
+  | Ok af -> (
+      match af.Ast.af_agent.Ast.block_extends with
+      | Some (alias, name, _) ->
+          Alcotest.(check string) "alias" "s" alias;
+          Alcotest.(check string) "name" "Rater" name
+      | None -> Alcotest.fail "expected extends")
 
 let suite =
   ( "parser",
@@ -144,4 +164,6 @@ let suite =
       Alcotest.test_case "syntax error eof" `Quick test_syntax_error_eof;
       Alcotest.test_case "input block" `Quick test_parse_input_block;
       Alcotest.test_case "import+agent" `Quick test_parse_import_and_agent;
-      Alcotest.test_case "library" `Quick test_parse_library ] )
+      Alcotest.test_case "library" `Quick test_parse_library;
+      Alcotest.test_case "template" `Quick test_parse_template;
+      Alcotest.test_case "extends" `Quick test_parse_extends ] )

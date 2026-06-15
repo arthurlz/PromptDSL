@@ -34,12 +34,17 @@ type agent_item =
   | IOutput of raw_output node
   | IInputs of input_decl list node
 
+type def_decl = { def_name : string; def_text : string; def_loc : Location.t }
+
+type template_decl = { tpl_name : string; tpl_items : agent_item list; tpl_loc : Location.t }
+type lib_item = LDef of def_decl | LTemplate of template_decl
+
 type agent_block = {
   block_name : string;
   block_items : agent_item list;
   block_loc : Location.t;
+  block_extends : (string * string * Location.t) option;
 }
 
-type def_decl = { def_name : string; def_text : string; def_loc : Location.t }
 type import_decl = { imp_path : string; imp_alias : string; imp_loc : Location.t }
 type agent_file = { af_imports : import_decl list; af_agent : agent_block }

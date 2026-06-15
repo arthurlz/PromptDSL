@@ -7,6 +7,7 @@ let mkloc (s, e) = Location.of_positions s e
 
 %token AGENT GOAL STEP OUTPUT INPUT
 %token IMPORT AS DEF
+%token TEMPLATE EXTENDS DOT
 %token STRING_TY INT_TY BOOL_TY ENUM LIST
 %token <string> IDENT
 %token <string> STRING
@@ -15,7 +16,7 @@ let mkloc (s, e) = Location.of_positions s e
 %token EOF
 
 %start <Ast.agent_file> program
-%start <Ast.def_decl list> library
+%start <Ast.lib_item list> library
 
 %%
 
@@ -24,7 +25,15 @@ program:
     { { af_imports = imports; af_agent = a } }
 
 library:
-  | defs = list(def_decl) EOF { defs }
+  | items = list(lib_item) EOF { items }
+
+lib_item:
+  | d = def_decl { Ast.LDef d }
+  | t = template_decl { Ast.LTemplate t }
+
+template_decl:
+  | TEMPLATE name = IDENT LBRACE items = list(item) RBRACE
+    { { tpl_name = name; tpl_items = items; tpl_loc = mkloc $loc } }
 
 import_decl:
   | IMPORT p = STRING AS a = IDENT
@@ -35,8 +44,12 @@ def_decl:
     { { def_name = name; def_text = text; def_loc = mkloc $loc } }
 
 agent:
-  | AGENT name = STRING LBRACE items = list(item) RBRACE
-    { { block_name = name; block_items = items; block_loc = mkloc $loc } }
+  | AGENT name = STRING ext = extends_opt LBRACE items = list(item) RBRACE
+    { { block_name = name; block_items = items; block_loc = mkloc $loc; block_extends = ext } }
+
+extends_opt:
+  | { None }
+  | EXTENDS a = IDENT DOT n = IDENT { Some (a, n, mkloc $loc) }
 
 item:
   | GOAL s = STRING

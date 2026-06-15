@@ -17,7 +17,7 @@ let run_parser entry (src : string) =
       Error (Error.make loc msg)
 
 let parse (src : string) : (Ast.agent_file, Error.t) result = run_parser Parser.program src
-let parse_library (src : string) : (Ast.def_decl list, Error.t) result =
+let parse_library (src : string) : (Ast.lib_item list, Error.t) result =
   run_parser Parser.library src
 
 type outputs = { prose : string; json : Yojson.Safe.t }

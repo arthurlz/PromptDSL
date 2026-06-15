@@ -11,7 +11,8 @@ let keywords =
     ("input", INPUT);
     ("string", STRING_TY); ("int", INT_TY); ("bool", BOOL_TY);
     ("enum", ENUM); ("list", LIST);
-    ("import", IMPORT); ("as", AS); ("def", DEF) ]
+    ("import", IMPORT); ("as", AS); ("def", DEF);
+    ("template", TEMPLATE); ("extends", EXTENDS) ]
 
 let ident_or_keyword s =
   match List.assoc_opt s keywords with Some t -> t | None -> IDENT s
@@ -37,6 +38,7 @@ rule token = parse
   | ':'            { COLON }
   | '?'            { QUESTION }
   | '='            { EQ }
+  | '.'            { DOT }
   | "@content"     { CONTENT }
   | '"'            { let start_p = Lexing.lexeme_start_p lexbuf in
                      Buffer.clear buf;
