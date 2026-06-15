@@ -8,9 +8,12 @@ let print_diags filename ds =
   List.iter (fun d -> prerr_endline (Error.to_string ~filename d)) ds
 
 let fs_resolver base_dir path : (string, string) result =
-  match read_file (Filename.concat base_dir path) with
-  | s -> Ok s
-  | exception Sys_error msg -> Error msg
+  if not (Filename.is_relative path) then
+    Error "import paths must be relative to the agent file"
+  else
+    match read_file (Filename.concat base_dir path) with
+    | s -> Ok s
+    | exception Sys_error msg -> Error msg
 
 let run_check (file : string) : int =
   match read_file file with
