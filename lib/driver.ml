@@ -7,13 +7,19 @@ let read_file path =
 let print_diags filename ds =
   List.iter (fun d -> prerr_endline (Error.to_string ~filename d)) ds
 
+let fs_resolver base_dir path : (string, string) result =
+  match read_file (Filename.concat base_dir path) with
+  | s -> Ok s
+  | exception Sys_error msg -> Error msg
+
 let run_check (file : string) : int =
   match read_file file with
   | exception Sys_error msg ->
       prerr_endline msg;
       2
   | src -> (
-      match Compile.parse_and_check src with
+      let resolver = fs_resolver (Filename.dirname file) in
+      match Compile.parse_and_check ~resolver src with
       | Ok _ ->
           print_endline "OK";
           0
@@ -38,7 +44,8 @@ let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : stri
       match read_file file with
       | exception Sys_error msg -> prerr_endline msg; 2
       | src -> (
-          match Compile.compile_string ~values src with
+          let resolver = fs_resolver (Filename.dirname file) in
+          match Compile.compile_string ~values ~resolver src with
           | Compile.Failure ds -> print_diags file ds; 1
           | Compile.Success o ->
               (match emit with

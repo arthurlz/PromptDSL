@@ -20,19 +20,33 @@ let parse (src : string) : (Ast.agent_file, Error.t) result = run_parser Parser.
 let parse_library (src : string) : (Ast.def_decl list, Error.t) result =
   run_parser Parser.library src
 
-let parse_and_check (src : string) : (Sema.checked, Error.t list) result =
-  match parse src with
-  | Error e -> Error [ e ]
-  | Ok af -> Sema.analyze af.Ast.af_agent
-
 type outputs = { prose : string; json : Yojson.Safe.t }
 type outcome = Success of outputs | Failure of Error.t list
 
-let compile_string ?(values = []) (src : string) : outcome =
-  match parse_and_check src with
+let default_resolver (_ : string) : (string, string) result =
+  Error "imports require a file context (compile a file, not a bare string)"
+
+let frontend ?(resolver = default_resolver) (src : string) :
+    (Sema.checked * Resolve.fragments, Error.t list) result =
+  match parse src with
+  | Error e -> Error [ e ]
+  | Ok af -> (
+      match Resolve.resolve ~parse_lib:parse_library ~resolver af.Ast.af_imports with
+      | Error ds -> Error ds
+      | Ok fragments -> (
+          match Sema.analyze ~fragments af.Ast.af_agent with
+          | Error ds -> Error ds
+          | Ok checked -> Ok (checked, fragments)))
+
+let parse_and_check ?(resolver = default_resolver) (src : string) :
+    (Sema.checked, Error.t list) result =
+  Result.map fst (frontend ~resolver src)
+
+let compile_string ?(values = []) ?(resolver = default_resolver) (src : string) : outcome =
+  match frontend ~resolver src with
   | Error ds -> Failure ds
-  | Ok checked -> (
-      match Bind.bind checked values with
+  | Ok (checked, fragments) -> (
+      match Bind.bind ~fragments checked values with
       | Error ds -> Failure ds
       | Ok bound ->
           let ir = Lower.lower bound in
