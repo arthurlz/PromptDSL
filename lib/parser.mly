@@ -6,6 +6,7 @@ let mkloc (s, e) = Location.of_positions s e
 %}
 
 %token AGENT GOAL STEP OUTPUT INPUT
+%token IMPORT AS DEF
 %token STRING_TY INT_TY BOOL_TY ENUM LIST
 %token <string> IDENT
 %token <string> STRING
@@ -13,12 +14,25 @@ let mkloc (s, e) = Location.of_positions s e
 %token EQ CONTENT
 %token EOF
 
-%start <Ast.agent_block> program
+%start <Ast.agent_file> program
+%start <Ast.def_decl list> library
 
 %%
 
 program:
-  | a = agent EOF { a }
+  | imports = list(import_decl) a = agent EOF
+    { { af_imports = imports; af_agent = a } }
+
+library:
+  | defs = list(def_decl) EOF { defs }
+
+import_decl:
+  | IMPORT p = STRING AS a = IDENT
+    { { imp_path = p; imp_alias = a; imp_loc = mkloc $loc } }
+
+def_decl:
+  | DEF name = IDENT EQ text = STRING
+    { { def_name = name; def_text = text; def_loc = mkloc $loc } }
 
 agent:
   | AGENT name = STRING LBRACE items = list(item) RBRACE

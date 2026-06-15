@@ -5,7 +5,7 @@ let msgs ds = String.concat "; " (List.map (fun (d : Error.t) -> d.Error.message
 let analyze src =
   match Compile.parse src with
   | Error e -> Alcotest.failf "parse error: %s" e.Error.message
-  | Ok b -> Sema.analyze b
+  | Ok af -> Sema.analyze af.Ast.af_agent
 
 let ok_or_fail src =
   match analyze src with

@@ -17,13 +17,13 @@ agent "researcher" {
 let test_parse_ok () =
   match Compile.parse researcher with
   | Error e -> Alcotest.failf "unexpected parse error: %s" e.Error.message
-  | Ok block ->
-      Alcotest.(check string) "name" "researcher" block.Ast.block_name;
-      Alcotest.(check int) "items" 4 (List.length block.Ast.block_items);
-      (match List.nth block.Ast.block_items 0 with
+  | Ok af ->
+      Alcotest.(check string) "name" "researcher" af.Ast.af_agent.Ast.block_name;
+      Alcotest.(check int) "items" 4 (List.length af.Ast.af_agent.Ast.block_items);
+      (match List.nth af.Ast.af_agent.Ast.block_items 0 with
        | Ast.IGoal g -> Alcotest.(check string) "goal" "analyze TSLA" g.Ast.v
        | _ -> Alcotest.fail "expected goal first");
-      (match List.nth block.Ast.block_items 3 with
+      (match List.nth af.Ast.af_agent.Ast.block_items 3 with
        | Ast.IOutput o ->
            Alcotest.(check string) "fmt" "json" o.Ast.v.Ast.out_format.Ast.v;
            (match o.Ast.v.Ast.out_schema with
@@ -58,8 +58,8 @@ let test_schema_types () =
   in
   match Compile.parse src with
   | Error e -> Alcotest.failf "unexpected parse error: %s" e.Error.message
-  | Ok block -> (
-      match List.nth block.Ast.block_items 1 with
+  | Ok af -> (
+      match List.nth af.Ast.af_agent.Ast.block_items 1 with
       | Ast.IOutput o -> (
           match o.Ast.v.Ast.out_schema with
           | Some [ tags; note; rating ] ->
@@ -97,11 +97,11 @@ let test_parse_input_block () =
   in
   match Compile.parse src with
   | Error e -> Alcotest.failf "unexpected parse error: %s" e.Error.message
-  | Ok block -> (
+  | Ok af -> (
       match
         List.find_map
           (function Ast.IInputs n -> Some n.Ast.v | _ -> None)
-          block.Ast.block_items
+          af.Ast.af_agent.Ast.block_items
       with
       | Some [ a; b; c ] ->
           Alcotest.(check string) "1 name" "ticker" a.Ast.in_name;
@@ -109,6 +109,30 @@ let test_parse_input_block () =
           Alcotest.(check (option string)) "2 default" (Some "brief") b.Ast.in_default;
           Alcotest.(check bool) "3 content" true c.Ast.in_content
       | _ -> Alcotest.fail "expected an input block with 3 fields")
+
+let test_parse_import_and_agent () =
+  let src =
+    {|import "finance.prompt" as fin
+      agent "a" { goal "g {{fin.disclaimer}}" }|}
+  in
+  match Compile.parse src with
+  | Error e -> Alcotest.failf "unexpected parse error: %s" e.Error.message
+  | Ok af -> (
+      Alcotest.(check string) "agent name" "a" af.Ast.af_agent.Ast.block_name;
+      match af.Ast.af_imports with
+      | [ i ] ->
+          Alcotest.(check string) "path" "finance.prompt" i.Ast.imp_path;
+          Alcotest.(check string) "alias" "fin" i.Ast.imp_alias
+      | _ -> Alcotest.fail "expected one import")
+
+let test_parse_library () =
+  match Compile.parse_library {|def disclaimer = "x"  def rubric = "y"|} with
+  | Error e -> Alcotest.failf "unexpected: %s" e.Error.message
+  | Ok [ a; b ] ->
+      Alcotest.(check string) "1 name" "disclaimer" a.Ast.def_name;
+      Alcotest.(check string) "1 text" "x" a.Ast.def_text;
+      Alcotest.(check string) "2 name" "rubric" b.Ast.def_name
+  | Ok _ -> Alcotest.fail "expected two defs"
 
 let suite =
   ( "parser",
@@ -118,4 +142,6 @@ let suite =
       Alcotest.test_case "schema types" `Quick test_schema_types;
       Alcotest.test_case "syntax error msg" `Quick test_syntax_error_msg;
       Alcotest.test_case "syntax error eof" `Quick test_syntax_error_eof;
-      Alcotest.test_case "input block" `Quick test_parse_input_block ] )
+      Alcotest.test_case "input block" `Quick test_parse_input_block;
+      Alcotest.test_case "import+agent" `Quick test_parse_import_and_agent;
+      Alcotest.test_case "library" `Quick test_parse_library ] )

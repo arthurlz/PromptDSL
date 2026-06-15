@@ -10,7 +10,8 @@ let keywords =
   [ ("agent", AGENT); ("goal", GOAL); ("step", STEP); ("output", OUTPUT);
     ("input", INPUT);
     ("string", STRING_TY); ("int", INT_TY); ("bool", BOOL_TY);
-    ("enum", ENUM); ("list", LIST) ]
+    ("enum", ENUM); ("list", LIST);
+    ("import", IMPORT); ("as", AS); ("def", DEF) ]
 
 let ident_or_keyword s =
   match List.assoc_opt s keywords with Some t -> t | None -> IDENT s

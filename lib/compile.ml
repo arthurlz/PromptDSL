@@ -1,8 +1,8 @@
-let parse (src : string) : (Ast.agent_block, Error.t) result =
+let run_parser entry (src : string) =
   let lexbuf = Lexing.from_string src in
   lexbuf.Lexing.lex_curr_p <-
     { lexbuf.Lexing.lex_curr_p with Lexing.pos_lnum = 1; pos_fname = "" };
-  try Ok (Parser.program Lexer.token lexbuf) with
+  try Ok (entry Lexer.token lexbuf) with
   | Lexer.Error (msg, loc) -> Error (Error.make loc msg)
   | Parser.Error ->
       let tok = Lexing.lexeme lexbuf in
@@ -16,10 +16,14 @@ let parse (src : string) : (Ast.agent_block, Error.t) result =
       in
       Error (Error.make loc msg)
 
+let parse (src : string) : (Ast.agent_file, Error.t) result = run_parser Parser.program src
+let parse_library (src : string) : (Ast.def_decl list, Error.t) result =
+  run_parser Parser.library src
+
 let parse_and_check (src : string) : (Sema.checked, Error.t list) result =
   match parse src with
   | Error e -> Error [ e ]
-  | Ok block -> Sema.analyze block
+  | Ok af -> Sema.analyze af.Ast.af_agent
 
 type outputs = { prose : string; json : Yojson.Safe.t }
 type outcome = Success of outputs | Failure of Error.t list
