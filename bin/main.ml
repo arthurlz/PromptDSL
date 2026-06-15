@@ -11,9 +11,13 @@ let emit_arg =
   let doc = "What to emit: prose, json, or both." in
   Arg.(value & opt emit_conv `Prose & info [ "emit" ] ~docv:"WHAT" ~doc)
 
+let set_arg =
+  let doc = "Bind an input: $(b,--set ticker=TSLA). Repeatable." in
+  Arg.(value & opt_all string [] & info [ "set" ] ~docv:"KEY=VALUE" ~doc)
+
 let compile_cmd =
   let doc = "Compile a .prompt file to a prompt and/or an OpenAI request." in
-  let term = Term.(const Driver.run_compile $ file_arg $ emit_arg) in
+  let term = Term.(const Driver.run_compile $ file_arg $ emit_arg $ set_arg) in
   Cmd.v (Cmd.info "compile" ~doc) term
 
 let check_cmd =

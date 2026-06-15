@@ -21,23 +21,32 @@ let run_check (file : string) : int =
           print_diags file ds;
           1)
 
-let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) : int =
-  match read_file file with
-  | exception Sys_error msg ->
-      prerr_endline msg;
-      2
-  | src -> (
-      match Compile.compile_string src with
-      | Compile.Failure ds ->
-          print_diags file ds;
-          1
-      | Compile.Success o ->
-          (match emit with
-           | `Prose -> print_string o.Compile.prose
-           | `Json -> print_endline (Yojson.Safe.pretty_to_string o.Compile.json)
-           | `Both ->
-               print_endline "=== PROSE ===";
-               print_string o.Compile.prose;
-               print_endline "=== JSON ===";
-               print_endline (Yojson.Safe.pretty_to_string o.Compile.json));
-          0)
+let parse_set (s : string) : ((string * string), string) result =
+  match String.index_opt s '=' with
+  | Some i -> Ok (String.sub s 0 i, String.sub s (i + 1) (String.length s - i - 1))
+  | None -> Error (Printf.sprintf "invalid --set %S (expected KEY=VALUE)" s)
+
+let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : string list) : int =
+  let rec parse acc = function
+    | [] -> Ok (List.rev acc)
+    | s :: rest -> (
+        match parse_set s with Ok kv -> parse (kv :: acc) rest | Error m -> Error m)
+  in
+  match parse [] sets with
+  | Error m -> prerr_endline m; 2
+  | Ok values -> (
+      match read_file file with
+      | exception Sys_error msg -> prerr_endline msg; 2
+      | src -> (
+          match Compile.compile_string ~values src with
+          | Compile.Failure ds -> print_diags file ds; 1
+          | Compile.Success o ->
+              (match emit with
+               | `Prose -> print_string o.Compile.prose
+               | `Json -> print_endline (Yojson.Safe.pretty_to_string o.Compile.json)
+               | `Both ->
+                   print_endline "=== PROSE ===";
+                   print_string o.Compile.prose;
+                   print_endline "=== JSON ===";
+                   print_endline (Yojson.Safe.pretty_to_string o.Compile.json));
+              0))
