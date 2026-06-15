@@ -58,6 +58,18 @@ let test_set_last_wins () =
   | Ok b -> Alcotest.(check string) "last-wins" "B" b.Bind.b_goal
   | Error _ -> Alcotest.fail "unexpected error"
 
+let test_fragment_subst () =
+  match Compile.parse {|agent "a" { input { t: string } goal "{{t}} {{fin.disclaimer}}" }|} with
+  | Error e -> Alcotest.failf "parse: %s" e.Error.message
+  | Ok af -> (
+      let frags = [ ("fin", [ ("disclaimer", "D") ]) ] in
+      match Sema.analyze ~fragments:frags af.Ast.af_agent with
+      | Error _ -> Alcotest.fail "sema error"
+      | Ok c -> (
+          match Bind.bind ~fragments:frags c [ ("t", "X") ] with
+          | Error _ -> Alcotest.fail "bind error"
+          | Ok b -> Alcotest.(check string) "subst" "X D" b.Bind.b_goal))
+
 let suite =
   ( "bind",
     [ Alcotest.test_case "subst + default" `Quick test_subst_and_default;
@@ -67,4 +79,5 @@ let suite =
       Alcotest.test_case "content" `Quick test_content;
       Alcotest.test_case "no input block" `Quick test_no_input_block_content_none;
       Alcotest.test_case "empty input block" `Quick test_empty_input_block_content;
-      Alcotest.test_case "set last-wins" `Quick test_set_last_wins ] )
+      Alcotest.test_case "set last-wins" `Quick test_set_last_wins;
+      Alcotest.test_case "fragment subst" `Quick test_fragment_subst ] )

@@ -20,7 +20,8 @@ let typecheck (ty : Ast.ty) (v : string) : (unit, string) result =
       else Error (Printf.sprintf "expected one of %s, got %S" (String.concat "/" opts) v)
   | Ast.TList _ -> Error "list inputs are not supported"
 
-let bind (c : Sema.checked) (values : (string * string) list) : (bound, Error.t list) result =
+let bind ?(fragments : Resolve.fragments = []) (c : Sema.checked)
+    (values : (string * string) list) : (bound, Error.t list) result =
   let errors = ref [] in
   let add ?(loc = Location.dummy) m = errors := Error.make loc m :: !errors in
   let declared = List.map (fun (i : Sema.checked_input) -> i.Sema.ci_name) c.Sema.inputs in
@@ -51,7 +52,14 @@ let bind (c : Sema.checked) (values : (string * string) list) : (bound, Error.t 
   match List.rev !errors with
   | _ :: _ as es -> Error es
   | [] ->
-      let lookup name = Hashtbl.find_opt resolved name in
+      let lookup x =
+        match String.index_opt x '.' with
+        | Some i ->
+            let alias = String.sub x 0 i in
+            let name = String.sub x (i + 1) (String.length x - i - 1) in
+            Resolve.lookup fragments alias name
+        | None -> Hashtbl.find_opt resolved x
+      in
       let b_goal = Interp.subst lookup c.Sema.goal in
       let b_steps =
         List.map
