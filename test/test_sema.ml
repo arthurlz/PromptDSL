@@ -169,6 +169,35 @@ let test_goal_before_input () =
   in
   Alcotest.(check int) "inputs" 1 (List.length c.Sema.inputs)
 
+let analyze_with frags src =
+  match Compile.parse src with
+  | Error e -> Alcotest.failf "parse error: %s" e.Error.message
+  | Ok af -> Sema.analyze ~fragments:frags af.Ast.af_agent
+
+let test_fragment_ref_ok () =
+  let frags = [ ("fin", [ ("disclaimer", "D") ]) ] in
+  match analyze_with frags {|agent "a" { goal "g {{fin.disclaimer}}" }|} with
+  | Ok _ -> ()
+  | Error ds ->
+      Alcotest.failf "unexpected: %s"
+        (String.concat "; " (List.map (fun (d : Error.t) -> d.Error.message) ds))
+
+let test_unknown_alias () =
+  match analyze_with [] {|agent "a" { goal "g {{fin.disclaimer}}" }|} with
+  | Ok _ -> Alcotest.fail "expected error"
+  | Error ds ->
+      Alcotest.(check bool) "unknown alias" true
+        (List.exists (fun (d : Error.t) -> d.Error.message = "unknown import alias 'fin'") ds)
+
+let test_unknown_def () =
+  let frags = [ ("fin", [ ("disclaimer", "D") ]) ] in
+  match analyze_with frags {|agent "a" { goal "g {{fin.nope}}" }|} with
+  | Ok _ -> Alcotest.fail "expected error"
+  | Error ds ->
+      Alcotest.(check bool) "unknown def" true
+        (List.exists
+           (fun (d : Error.t) -> d.Error.message = "no def 'nope' in import 'fin'") ds)
+
 let suite =
   ( "sema",
     [ Alcotest.test_case "levenshtein" `Quick test_levenshtein;
@@ -191,4 +220,7 @@ let suite =
       Alcotest.test_case "content not string" `Quick test_content_not_string;
       Alcotest.test_case "list input rejected" `Quick test_list_input;
       Alcotest.test_case "enum default not member" `Quick test_enum_default_not_member;
-      Alcotest.test_case "goal before input" `Quick test_goal_before_input ] )
+      Alcotest.test_case "goal before input" `Quick test_goal_before_input;
+      Alcotest.test_case "fragment ref ok" `Quick test_fragment_ref_ok;
+      Alcotest.test_case "unknown alias" `Quick test_unknown_alias;
+      Alcotest.test_case "unknown def" `Quick test_unknown_def ] )

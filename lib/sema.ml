@@ -56,7 +56,7 @@ let hint_for target candidates =
   | Some s -> Some (Printf.sprintf "did you mean '%s'?" s)
   | None -> None
 
-let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
+let analyze ?(fragments : Resolve.fragments = []) (block : Ast.agent_block) : (checked, Error.t list) result =
   let errors = ref [] in
   let add e = errors := e :: !errors in
   let goal = ref None and steps = ref [] and output = ref None in
@@ -177,9 +177,21 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
     (fun (text, span) ->
       List.iter
         (fun name ->
-          if not (List.mem name declared) then
-            add (Error.make span
-                   (Printf.sprintf "undeclared input reference '{{%s}}'" name)))
+          match String.index_opt name '.' with
+          | Some i ->
+              let alias = String.sub name 0 i in
+              let dname = String.sub name (i + 1) (String.length name - i - 1) in
+              (match Resolve.find fragments alias dname with
+               | Resolve.Found _ -> ()
+               | Resolve.NoAlias ->
+                   add (Error.make span (Printf.sprintf "unknown import alias '%s'" alias))
+               | Resolve.NoDef ->
+                   add (Error.make span
+                          (Printf.sprintf "no def '%s' in import '%s'" dname alias)))
+          | None ->
+              if not (List.mem name declared) then
+                add (Error.make span
+                       (Printf.sprintf "undeclared input reference '{{%s}}'" name)))
         (Interp.refs text))
     (List.rev !ref_sites);
   match !errors with
