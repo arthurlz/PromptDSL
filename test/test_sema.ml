@@ -144,6 +144,31 @@ let test_content_not_string () =
        (fun (d : Error.t) -> d.Error.message = "@content must be on a string input")
        ds)
 
+let test_list_input () =
+  let ds = err_or_fail {|agent "a" { input { items: list<string> } goal "g" }|} in
+  Alcotest.(check bool) "list rejected" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "list is not allowed as an input type")
+       ds)
+
+let test_enum_default_not_member () =
+  let ds =
+    err_or_fail {|agent "a" { input { d: enum("low","high") = "medium" } goal "g" }|}
+  in
+  Alcotest.(check bool) "bad enum default" true
+    (List.exists
+       (fun (d : Error.t) ->
+         d.Error.message = {|default "medium" is not one of the enum options|})
+       ds)
+
+(* The {{ref}}-declared check runs after the whole-body pass, so a goal that
+   references an input declared later in the file is still valid. *)
+let test_goal_before_input () =
+  let c =
+    ok_or_fail {|agent "a" { goal "analyze {{ticker}}" input { ticker: string } }|}
+  in
+  Alcotest.(check int) "inputs" 1 (List.length c.Sema.inputs)
+
 let suite =
   ( "sema",
     [ Alcotest.test_case "levenshtein" `Quick test_levenshtein;
@@ -163,4 +188,7 @@ let suite =
       Alcotest.test_case "dup input" `Quick test_dup_input;
       Alcotest.test_case "two content" `Quick test_two_content;
       Alcotest.test_case "default on int" `Quick test_default_on_int;
-      Alcotest.test_case "content not string" `Quick test_content_not_string ] )
+      Alcotest.test_case "content not string" `Quick test_content_not_string;
+      Alcotest.test_case "list input rejected" `Quick test_list_input;
+      Alcotest.test_case "enum default not member" `Quick test_enum_default_not_member;
+      Alcotest.test_case "goal before input" `Quick test_goal_before_input ] )
