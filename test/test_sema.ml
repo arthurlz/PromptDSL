@@ -101,6 +101,49 @@ let test_dup_output () =
        (fun (d : Error.t) -> d.Error.message = "duplicate 'output'")
        ds)
 
+let test_valid_inputs () =
+  let c =
+    ok_or_fail
+      {|agent "a" { input { ticker: string  depth: enum("b","d") = "b" } goal "x {{ticker}} {{depth}}" }|}
+  in
+  Alcotest.(check int) "inputs" 2 (List.length c.Sema.inputs)
+
+let test_undeclared_ref () =
+  let ds = err_or_fail {|agent "a" { goal "analyze {{ticker}}" }|} in
+  Alcotest.(check bool) "undeclared ref" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "undeclared input reference '{{ticker}}'")
+       ds)
+
+let test_dup_input () =
+  let ds = err_or_fail {|agent "a" { input { x: string  x: string } goal "g" }|} in
+  Alcotest.(check bool) "dup input" true
+    (List.exists (fun (d : Error.t) -> d.Error.message = "duplicate input 'x'") ds)
+
+let test_two_content () =
+  let ds =
+    err_or_fail {|agent "a" { input { x: string @content  y: string @content } goal "g" }|}
+  in
+  Alcotest.(check bool) "two content" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "at most one input may be @content")
+       ds)
+
+let test_default_on_int () =
+  let ds = err_or_fail {|agent "a" { input { n: int = "5" } goal "g" }|} in
+  Alcotest.(check bool) "default on int" true
+    (List.exists
+       (fun (d : Error.t) ->
+         d.Error.message = "a default is only allowed on string or enum inputs")
+       ds)
+
+let test_content_not_string () =
+  let ds = err_or_fail {|agent "a" { input { n: int @content } goal "g" }|} in
+  Alcotest.(check bool) "content not string" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "@content must be on a string input")
+       ds)
+
 let suite =
   ( "sema",
     [ Alcotest.test_case "levenshtein" `Quick test_levenshtein;
@@ -114,4 +157,10 @@ let suite =
       Alcotest.test_case "error order" `Quick test_error_order;
       Alcotest.test_case "string span" `Quick test_string_span;
       Alcotest.test_case "unknown format" `Quick test_unknown_format;
-      Alcotest.test_case "dup output" `Quick test_dup_output ] )
+      Alcotest.test_case "dup output" `Quick test_dup_output;
+      Alcotest.test_case "valid inputs" `Quick test_valid_inputs;
+      Alcotest.test_case "undeclared ref" `Quick test_undeclared_ref;
+      Alcotest.test_case "dup input" `Quick test_dup_input;
+      Alcotest.test_case "two content" `Quick test_two_content;
+      Alcotest.test_case "default on int" `Quick test_default_on_int;
+      Alcotest.test_case "content not string" `Quick test_content_not_string ] )

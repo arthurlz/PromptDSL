@@ -7,11 +7,20 @@ type checked_output =
   | COMarkdown
   | COJson of Ast.field list option
 
+type checked_input = {
+  ci_name : string;
+  ci_ty : Ast.ty;
+  ci_default : string option;
+  ci_content : bool;
+  ci_loc : Location.t;
+}
+
 type checked = {
   name : string;
   goal : string;
   steps : checked_step list;
   output : checked_output;
+  inputs : checked_input list;
 }
 
 let known_actions =
@@ -50,6 +59,8 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
   let errors = ref [] in
   let add e = errors := e :: !errors in
   let goal = ref None and steps = ref [] and output = ref None in
+  let inputs = ref [] and saw_input_block = ref false in
+  let ref_sites = ref [] in   (* (text, span) to validate {{...}} against declared inputs *)
   let check_dup_fields fields =
     let seen = Hashtbl.create 8 in
     List.iter
@@ -65,11 +76,15 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
     (fun item ->
       match item with
       | IGoal g -> (
+          ref_sites := (g.v, g.span) :: !ref_sites;
           match !goal with
           | None -> goal := Some g.v
           | Some _ -> add (Error.make g.span "duplicate 'goal'"))
       | IStep a ->
           let name = a.action_name.v in
+          (match a.action_arg with
+           | Some arg -> ref_sites := (arg, a.action_name.span) :: !ref_sites
+           | None -> ());
           if not (List.mem name known_actions) then
             add
               (Error.make ?hint:(hint_for name known_actions) a.action_name.span
@@ -79,7 +94,46 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
               (Error.make a.action_name.span
                  "'instruct' requires a string argument")
           else steps := { verb = name; arg = a.action_arg } :: !steps
-      | IInputs _ -> ()
+      | IInputs blk ->
+          if !saw_input_block then
+            add (Error.make blk.span "duplicate 'input' block")
+          else begin
+            saw_input_block := true;
+            let seen = Hashtbl.create 8 in
+            let content_count = ref 0 in
+            List.iter
+              (fun (d : Ast.input_decl) ->
+                (if Hashtbl.mem seen d.in_name then
+                   add (Error.make d.in_loc (Printf.sprintf "duplicate input '%s'" d.in_name))
+                 else Hashtbl.add seen d.in_name ());
+                (match d.in_ty with
+                 | Ast.TList _ ->
+                     add (Error.make d.in_loc "list is not allowed as an input type")
+                 | _ -> ());
+                (match (d.in_default, d.in_ty) with
+                 | Some _, Ast.TString -> ()
+                 | Some def, Ast.TEnum opts ->
+                     if not (List.mem def opts) then
+                       add (Error.make d.in_loc
+                              (Printf.sprintf "default %S is not one of the enum options" def))
+                 | Some _, _ ->
+                     add (Error.make d.in_loc
+                            "a default is only allowed on string or enum inputs")
+                 | None, _ -> ());
+                (if d.in_content then begin
+                   incr content_count;
+                   (match d.in_ty with
+                    | Ast.TString -> ()
+                    | _ -> add (Error.make d.in_loc "@content must be on a string input"))
+                 end);
+                inputs :=
+                  { ci_name = d.in_name; ci_ty = d.in_ty; ci_default = d.in_default;
+                    ci_content = d.in_content; ci_loc = d.in_loc }
+                  :: !inputs)
+              blk.v;
+            if !content_count > 1 then
+              add (Error.make blk.span "at most one input may be @content")
+          end
       | IOutput o -> (
           match !output with
           | Some _ -> add (Error.make o.span "duplicate 'output'")
@@ -117,6 +171,16 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
         add (Error.make block.block_loc "missing required 'goal'");
         None
   in
+  let declared = List.map (fun (i : checked_input) -> i.ci_name) !inputs in
+  List.iter
+    (fun (text, span) ->
+      List.iter
+        (fun name ->
+          if not (List.mem name declared) then
+            add (Error.make span
+                   (Printf.sprintf "undeclared input reference '{{%s}}'" name)))
+        (Interp.refs text))
+    (List.rev !ref_sites);
   match !errors with
   | [] ->
       Ok
@@ -125,6 +189,7 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
           goal = Option.get goal_val;
           steps = List.rev !steps;
           output = Option.value !output ~default:COText;
+          inputs = List.rev !inputs;
         }
   | es ->
       (* Report diagnostics in source order. Item errors are accumulated in

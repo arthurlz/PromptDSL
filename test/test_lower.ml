@@ -13,6 +13,7 @@ let test_lower () =
           (Some
              [ { Ast.field_name = "ticker"; field_ty = Ast.TString;
                  optional = false; field_loc = Location.dummy } ]);
+      inputs = [];
     }
   in
   let ir = Lower.lower checked in
@@ -31,7 +32,7 @@ let test_lower () =
    schema object that forbids all keys. *)
 let test_lower_empty_schema () =
   let checked =
-    { Sema.name = "a"; goal = "g"; steps = []; output = Sema.COJson (Some []) }
+    { Sema.name = "a"; goal = "g"; steps = []; output = Sema.COJson (Some []); inputs = [] }
   in
   match (Lower.lower checked).Ir.out with
   | Ir.OJson None -> ()
@@ -53,6 +54,7 @@ let test_all_verbs () =
           step "instruct" (Some "Be concise");
           step "summarize" (Some "the doc") ];
       output = Sema.COText;
+      inputs = [];
     }
   in
   Alcotest.(check (list string)) "instructions"
