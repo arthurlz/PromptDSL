@@ -30,4 +30,7 @@ let render (ir : Ir.t) : string =
                 (if f.required then "" else "?")
                 (render_ty f.fty)))
          fields);
+  (match ir.content with
+   | Some s when s <> "" -> Buffer.add_string b (Printf.sprintf "\n## Input\n%s\n" s)
+   | _ -> ());
   Buffer.contents b

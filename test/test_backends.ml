@@ -11,6 +11,7 @@ let sample_ir =
            [ { Ir.fname = "rating"; fty = Ir.SEnum [ "buy"; "hold"; "sell" ];
                required = true };
              { Ir.fname = "note"; fty = Ir.SString; required = false } ]);
+    content = None;
   }
 
 let contains s sub =
@@ -42,7 +43,7 @@ let test_openai () =
   Alcotest.(check (list string)) "required" [ "rating" ] required
 
 let ir_with out =
-  { Ir.agent_name = "a"; objective = "g"; instructions = []; out }
+  { Ir.agent_name = "a"; objective = "g"; instructions = []; out; content = None }
 
 let has_member j k =
   match j with `Assoc l -> List.mem_assoc k l | _ -> false
@@ -66,9 +67,35 @@ let test_prose_output_lines () =
   Alcotest.(check bool) "text: no format note" false
     (contains (Backend_prose.render (ir_with Ir.OText)) "Format your answer")
 
+let test_content_to_user_message () =
+  match Compile.compile_string ~values:[ ("body", "review this") ]
+          {|agent "r" { input { body: string @content } goal "Review the input." }|}
+  with
+  | Compile.Failure _ -> Alcotest.fail "unexpected failure"
+  | Compile.Success o ->
+      let open Yojson.Safe.Util in
+      let user =
+        o.Compile.json |> member "messages" |> to_list |> List.rev |> List.hd
+        |> member "content" |> to_string
+      in
+      Alcotest.(check string) "user message is content" "review this" user
+
+let test_no_input_legacy_user_message () =
+  match Compile.compile_string {|agent "r" { goal "g" }|} with
+  | Compile.Failure _ -> Alcotest.fail "unexpected failure"
+  | Compile.Success o ->
+      let open Yojson.Safe.Util in
+      let user =
+        o.Compile.json |> member "messages" |> to_list |> List.rev |> List.hd
+        |> member "content" |> to_string
+      in
+      Alcotest.(check string) "legacy {{input}}" "{{input}}" user
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
       Alcotest.test_case "openai" `Quick test_openai;
       Alcotest.test_case "response_format gating" `Quick test_response_format_gating;
-      Alcotest.test_case "prose output lines" `Quick test_prose_output_lines ] )
+      Alcotest.test_case "prose output lines" `Quick test_prose_output_lines;
+      Alcotest.test_case "content to user message" `Quick test_content_to_user_message;
+      Alcotest.test_case "no input legacy user message" `Quick test_no_input_legacy_user_message ] )

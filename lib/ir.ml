@@ -17,4 +17,5 @@ type t = {
   objective : string;
   instructions : string list;
   out : output;
+  content : string option;
 }

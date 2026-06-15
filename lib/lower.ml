@@ -37,10 +37,11 @@ let output_to_ir (o : Sema.checked_output) : Ir.output =
   | Sema.COJson (Some []) -> Ir.OJson None
   | Sema.COJson (Some fields) -> Ir.OJson (Some (List.map field_to_ir fields))
 
-let lower (c : Sema.checked) : Ir.t =
+let lower (b : Bind.bound) : Ir.t =
   {
-    Ir.agent_name = c.Sema.name;
-    objective = c.Sema.goal;
-    instructions = List.map render_instruction c.Sema.steps;
-    out = output_to_ir c.Sema.output;
+    Ir.agent_name = b.Bind.b_name;
+    objective = b.Bind.b_goal;
+    instructions = List.map render_instruction b.Bind.b_steps;
+    out = output_to_ir b.Bind.b_output;
+    content = b.Bind.b_content;
   }

@@ -24,9 +24,12 @@ let parse_and_check (src : string) : (Sema.checked, Error.t list) result =
 type outputs = { prose : string; json : Yojson.Safe.t }
 type outcome = Success of outputs | Failure of Error.t list
 
-let compile_string (src : string) : outcome =
+let compile_string ?(values = []) (src : string) : outcome =
   match parse_and_check src with
   | Error ds -> Failure ds
-  | Ok checked ->
-      let ir = Lower.lower checked in
-      Success { prose = Backend_prose.render ir; json = Backend_openai.render ir }
+  | Ok checked -> (
+      match Bind.bind checked values with
+      | Error ds -> Failure ds
+      | Ok bound ->
+          let ir = Lower.lower bound in
+          Success { prose = Backend_prose.render ir; json = Backend_openai.render ir })

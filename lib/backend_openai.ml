@@ -29,6 +29,9 @@ let response_format fields =
                   ("required", `List required);
                   ("additionalProperties", `Bool false) ] ) ] ) ]
 
+let user_message (ir : Ir.t) : string =
+  match ir.content with None -> "{{input}}" | Some s -> s
+
 let render (ir : Ir.t) : Yojson.Safe.t =
   let base =
     [ ("model", `String "gpt-4o-mini");
@@ -38,7 +41,7 @@ let render (ir : Ir.t) : Yojson.Safe.t =
               [ ("role", `String "system");
                 ("content", `String (Backend_prose.render ir)) ];
             `Assoc
-              [ ("role", `String "user"); ("content", `String "{{input}}") ] ] ) ]
+              [ ("role", `String "user"); ("content", `String (user_message ir)) ] ] ) ]
   in
   let fields =
     match ir.out with

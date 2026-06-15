@@ -1,22 +1,22 @@
 open Promptdsl
 
 let test_lower () =
-  let checked =
+  let bound =
     {
-      Sema.name = "researcher";
-      goal = "analyze TSLA";
-      steps =
+      Bind.b_name = "researcher";
+      b_goal = "analyze TSLA";
+      b_steps =
         [ { Sema.verb = "search"; arg = Some "TSLA earnings" };
           { Sema.verb = "summarize"; arg = None } ];
-      output =
+      b_output =
         Sema.COJson
           (Some
              [ { Ast.field_name = "ticker"; field_ty = Ast.TString;
                  optional = false; field_loc = Location.dummy } ]);
-      inputs = [];
+      b_content = None;
     }
   in
-  let ir = Lower.lower checked in
+  let ir = Lower.lower bound in
   Alcotest.(check string) "agent" "researcher" ir.Ir.agent_name;
   Alcotest.(check string) "objective" "analyze TSLA" ir.Ir.objective;
   Alcotest.(check (list string)) "instructions"
@@ -31,10 +31,10 @@ let test_lower () =
 (* An empty `output json {}` schema lowers to bare json (no schema), not a
    schema object that forbids all keys. *)
 let test_lower_empty_schema () =
-  let checked =
-    { Sema.name = "a"; goal = "g"; steps = []; output = Sema.COJson (Some []); inputs = [] }
+  let bound =
+    { Bind.b_name = "a"; b_goal = "g"; b_steps = []; b_output = Sema.COJson (Some []); b_content = None }
   in
-  match (Lower.lower checked).Ir.out with
+  match (Lower.lower bound).Ir.out with
   | Ir.OJson None -> ()
   | _ -> Alcotest.fail "empty schema should lower to OJson None"
 
@@ -42,19 +42,19 @@ let test_lower_empty_schema () =
    an argument. *)
 let test_all_verbs () =
   let step verb arg = { Sema.verb; arg } in
-  let checked =
+  let bound =
     {
-      Sema.name = "a";
-      goal = "g";
-      steps =
+      Bind.b_name = "a";
+      b_goal = "g";
+      b_steps =
         [ step "search" None;
           step "extract" (Some "facts");
           step "translate" (Some "ja");
           step "classify" None;
           step "instruct" (Some "Be concise");
           step "summarize" (Some "the doc") ];
-      output = Sema.COText;
-      inputs = [];
+      b_output = Sema.COText;
+      b_content = None;
     }
   in
   Alcotest.(check (list string)) "instructions"
@@ -64,7 +64,7 @@ let test_all_verbs () =
       "Classify the result";
       "Be concise";
       "Summarize: the doc" ]
-    (Lower.lower checked).Ir.instructions
+    (Lower.lower bound).Ir.instructions
 
 let suite =
   ( "lower",
