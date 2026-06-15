@@ -79,6 +79,7 @@ let analyze (block : Ast.agent_block) : (checked, Error.t list) result =
               (Error.make a.action_name.span
                  "'instruct' requires a string argument")
           else steps := { verb = name; arg = a.action_arg } :: !steps
+      | IInputs _ -> ()
       | IOutput o -> (
           match !output with
           | Some _ -> add (Error.make o.span "duplicate 'output'")

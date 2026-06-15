@@ -84,6 +84,32 @@ let test_syntax_error_eof () =
   | Error e ->
       Alcotest.(check string) "eof" "syntax error at end of input" e.Error.message
 
+let test_parse_input_block () =
+  let src =
+    {|agent "a" {
+        input {
+          ticker: string
+          depth:  enum("brief", "deep") = "brief"
+          notes:  string @content
+        }
+        goal "Analyze {{ticker}} at {{depth}}."
+      }|}
+  in
+  match Compile.parse src with
+  | Error e -> Alcotest.failf "unexpected parse error: %s" e.Error.message
+  | Ok block -> (
+      match
+        List.find_map
+          (function Ast.IInputs n -> Some n.Ast.v | _ -> None)
+          block.Ast.block_items
+      with
+      | Some [ a; b; c ] ->
+          Alcotest.(check string) "1 name" "ticker" a.Ast.in_name;
+          Alcotest.(check bool) "1 required" true (a.Ast.in_default = None);
+          Alcotest.(check (option string)) "2 default" (Some "brief") b.Ast.in_default;
+          Alcotest.(check bool) "3 content" true c.Ast.in_content
+      | _ -> Alcotest.fail "expected an input block with 3 fields")
+
 let suite =
   ( "parser",
     [ Alcotest.test_case "parse ok" `Quick test_parse_ok;
@@ -91,4 +117,5 @@ let suite =
       Alcotest.test_case "lexer error" `Quick test_lexer_error;
       Alcotest.test_case "schema types" `Quick test_schema_types;
       Alcotest.test_case "syntax error msg" `Quick test_syntax_error_msg;
-      Alcotest.test_case "syntax error eof" `Quick test_syntax_error_eof ] )
+      Alcotest.test_case "syntax error eof" `Quick test_syntax_error_eof;
+      Alcotest.test_case "input block" `Quick test_parse_input_block ] )

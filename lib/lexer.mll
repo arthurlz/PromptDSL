@@ -8,6 +8,7 @@ let loc_of lexbuf =
 
 let keywords =
   [ ("agent", AGENT); ("goal", GOAL); ("step", STEP); ("output", OUTPUT);
+    ("input", INPUT);
     ("string", STRING_TY); ("int", INT_TY); ("bool", BOOL_TY);
     ("enum", ENUM); ("list", LIST) ]
 
@@ -34,6 +35,8 @@ rule token = parse
   | ','            { COMMA }
   | ':'            { COLON }
   | '?'            { QUESTION }
+  | '='            { EQ }
+  | "@content"     { CONTENT }
   | '"'            { let start_p = Lexing.lexeme_start_p lexbuf in
                      Buffer.clear buf;
                      let tok = string_lit start_p lexbuf in
