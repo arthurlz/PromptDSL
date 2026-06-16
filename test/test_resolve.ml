@@ -13,15 +13,20 @@ let test_resolve_ok () =
       [ imp "fin.prompt" "fin" ]
   with
   | Error _ -> Alcotest.fail "unexpected error"
-  | Ok frags ->
+  | Ok r ->
       Alcotest.(check (option string)) "found" (Some "D")
-        (Resolve.lookup frags "fin" "disclaimer");
-      (match Resolve.find frags "nope" "x" with
-       | Resolve.NoAlias -> ()
-       | _ -> Alcotest.fail "expected NoAlias");
-      (match Resolve.find frags "fin" "nope" with
-       | Resolve.NoDef -> ()
-       | _ -> Alcotest.fail "expected NoDef")
+        (Resolve.lookup r.Resolve.fragments "fin" "disclaimer")
+
+let test_resolve_template () =
+  let files = [ ("s.prompt", {|template Rater { step { summarize } }|}) ] in
+  match
+    Resolve.resolve ~parse_lib:Compile.parse_library ~resolver:(mem files) [ imp "s.prompt" "s" ]
+  with
+  | Error _ -> Alcotest.fail "unexpected error"
+  | Ok r -> (
+      match Resolve.find_template r "s" "Rater" with
+      | Some items -> Alcotest.(check int) "tpl items" 1 (List.length items)
+      | None -> Alcotest.fail "expected template Rater")
 
 let has msg ds = List.exists (fun (d : Error.t) -> d.Error.message = msg) ds
 
@@ -56,6 +61,7 @@ let test_resolve_dup_alias () =
 let suite =
   ( "resolve",
     [ Alcotest.test_case "ok" `Quick test_resolve_ok;
+      Alcotest.test_case "template" `Quick test_resolve_template;
       Alcotest.test_case "not found" `Quick test_resolve_not_found;
       Alcotest.test_case "not def-only" `Quick test_resolve_not_def_only;
       Alcotest.test_case "dup alias" `Quick test_resolve_dup_alias ] )

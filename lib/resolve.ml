@@ -3,6 +3,15 @@ type lookup_result = Found of string | NoAlias | NoDef
 type fragments = (string * (string * string) list) list
 (* alias -> [(def_name, def_text)] *)
 
+type resolved = {
+  fragments : fragments;
+  templates : ((string * string) * Ast.agent_item list) list;
+}
+
+let find_template (r : resolved) (alias : string) (name : string) :
+    Ast.agent_item list option =
+  List.assoc_opt (alias, name) r.templates
+
 let find (frags : fragments) (alias : string) (name : string) : lookup_result =
   match List.assoc_opt alias frags with
   | None -> NoAlias
@@ -13,11 +22,11 @@ let lookup frags alias name =
 
 let resolve ~(parse_lib : string -> (Ast.lib_item list, Error.t) result)
     ~(resolver : string -> (string, string) result) (imports : Ast.import_decl list) :
-    (fragments, Error.t list) result =
+    (resolved, Error.t list) result =
   let errors = ref [] in
   let add loc m = errors := Error.make loc m :: !errors in
   let seen = Hashtbl.create 8 in
-  let frags = ref [] in
+  let frags = ref [] and tmpls = ref [] in
   List.iter
     (fun (imp : Ast.import_decl) ->
       if Hashtbl.mem seen imp.Ast.imp_alias then
@@ -53,7 +62,25 @@ let resolve ~(parse_lib : string -> (Ast.lib_item list, Error.t) result)
                       end)
                     defs
                 in
-                frags := (imp.Ast.imp_alias, pairs) :: !frags)
+                frags := (imp.Ast.imp_alias, pairs) :: !frags;
+                let tpls =
+                  List.filter_map (function Ast.LTemplate t -> Some t | Ast.LDef _ -> None) items
+                in
+                let seen_tpl = Hashtbl.create 8 in
+                List.iter
+                  (fun (t : Ast.template_decl) ->
+                    if Hashtbl.mem seen_tpl t.Ast.tpl_name then
+                      add imp.Ast.imp_loc
+                        (Printf.sprintf "duplicate template '%s' in import %S" t.Ast.tpl_name
+                           imp.Ast.imp_path)
+                    else begin
+                      Hashtbl.add seen_tpl t.Ast.tpl_name ();
+                      tmpls :=
+                        ((imp.Ast.imp_alias, t.Ast.tpl_name), t.Ast.tpl_items) :: !tmpls
+                    end)
+                  tpls)
       end)
     imports;
-  match List.rev !errors with [] -> Ok (List.rev !frags) | es -> Error es
+  match List.rev !errors with
+  | [] -> Ok { fragments = List.rev !frags; templates = List.rev !tmpls }
+  | es -> Error es
