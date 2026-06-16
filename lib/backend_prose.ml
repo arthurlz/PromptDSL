@@ -1,5 +1,9 @@
 open Ir
 
+let range_str = function
+  | None -> ""
+  | Some (lo, hi) -> Printf.sprintf " (%g..%g)" lo hi
+
 let rec render_ty = function
   | SString -> "string"
   | SInt -> "int"
@@ -27,9 +31,9 @@ let render (ir : Ir.t) : string =
        List.iter
          (fun f ->
            Buffer.add_string b
-             (Printf.sprintf "  %s%s: %s\n" f.fname
+             (Printf.sprintf "  %s%s: %s%s\n" f.fname
                 (if f.required then "" else "?")
-                (render_ty f.fty)))
+                (render_ty f.fty) (range_str f.range)))
          fields);
   (match ir.content with
    | Some s when s <> "" -> Buffer.add_string b (Printf.sprintf "\n## Input\n%s\n" s)

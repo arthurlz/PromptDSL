@@ -25,7 +25,7 @@ let rec ty_to_ir (t : Ast.ty) : Ir.schema_ty =
 
 let field_to_ir (f : Ast.field) : Ir.schema_field =
   { Ir.fname = f.Ast.field_name; fty = ty_to_ir f.Ast.field_ty;
-    required = not f.Ast.optional }
+    required = not f.Ast.optional; range = f.Ast.field_range }
 
 let output_to_ir (o : Sema.checked_output) : Ir.output =
   match o with

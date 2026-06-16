@@ -12,7 +12,17 @@ let rec json_of_ty = function
   | SList t -> `Assoc [ ("type", `String "array"); ("items", json_of_ty t) ]
 
 let response_format fields =
-  let props = List.map (fun f -> (f.fname, json_of_ty f.fty)) fields in
+  let with_range (f : Ir.schema_field) (base : Yojson.Safe.t) : Yojson.Safe.t =
+    match (f.range, base) with
+    | None, _ -> base
+    | Some (lo, hi), `Assoc kvs ->
+        let num v = match f.fty with Ir.SInt -> `Int (int_of_float v) | _ -> `Float v in
+        `Assoc (kvs @ [ ("minimum", num lo); ("maximum", num hi) ])
+    | Some _, j -> j
+  in
+  let props =
+    List.map (fun (f : Ir.schema_field) -> (f.fname, with_range f (json_of_ty f.fty))) fields
+  in
   let required =
     List.filter_map
       (fun f -> if f.required then Some (`String f.fname) else None)

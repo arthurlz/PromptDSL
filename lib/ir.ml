@@ -6,7 +6,7 @@ type schema_ty =
   | SEnum of string list
   | SList of schema_ty
 
-type schema_field = { fname : string; fty : schema_ty; required : bool }
+type schema_field = { fname : string; fty : schema_ty; required : bool; range : (float * float) option }
 
 type output =
   | OText

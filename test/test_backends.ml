@@ -9,8 +9,8 @@ let sample_ir =
       Ir.OJson
         (Some
            [ { Ir.fname = "rating"; fty = Ir.SEnum [ "buy"; "hold"; "sell" ];
-               required = true };
-             { Ir.fname = "note"; fty = Ir.SString; required = false } ]);
+               required = true; range = None };
+             { Ir.fname = "note"; fty = Ir.SString; required = false; range = None } ]);
     content = None;
   }
 
@@ -138,7 +138,7 @@ let test_extends_end_to_end () =
 let test_float_number () =
   let ir =
     { Ir.agent_name = "a"; objective = "g"; instructions = [];
-      out = Ir.OJson (Some [ { Ir.fname = "p"; fty = Ir.SFloat; required = true } ]);
+      out = Ir.OJson (Some [ { Ir.fname = "p"; fty = Ir.SFloat; required = true; range = None } ]);
       content = None }
   in
   let open Yojson.Safe.Util in
@@ -147,6 +147,25 @@ let test_float_number () =
     |> member "schema" |> member "properties" |> member "p" |> member "type" |> to_string
   in
   Alcotest.(check string) "float -> number" "number" t
+
+let test_range_emitted () =
+  let ir =
+    { Ir.agent_name = "a"; objective = "g"; instructions = [];
+      out = Ir.OJson (Some [
+        { Ir.fname = "score"; fty = Ir.SInt; required = true; range = Some (0., 100.) };
+        { Ir.fname = "ratio"; fty = Ir.SFloat; required = true; range = Some (0., 1.) } ]);
+      content = None }
+  in
+  let open Yojson.Safe.Util in
+  let props =
+    Backend_openai.render ir |> member "response_format" |> member "json_schema"
+    |> member "schema" |> member "properties"
+  in
+  Alcotest.(check int) "int min" 0 (props |> member "score" |> member "minimum" |> to_int);
+  Alcotest.(check int) "int max" 100 (props |> member "score" |> member "maximum" |> to_int);
+  Alcotest.(check (float 0.001)) "float max" 1.0 (props |> member "ratio" |> member "maximum" |> to_number);
+  Alcotest.(check bool) "prose range" true
+    (contains (Backend_prose.render ir) "score: int (0..100)")
 
 let suite =
   ( "backends",
@@ -158,4 +177,5 @@ let suite =
       Alcotest.test_case "no input legacy user message" `Quick test_no_input_legacy_user_message;
       Alcotest.test_case "import end-to-end" `Quick test_import_end_to_end;
       Alcotest.test_case "extends end-to-end" `Quick test_extends_end_to_end;
-      Alcotest.test_case "float number" `Quick test_float_number ] )
+      Alcotest.test_case "float number" `Quick test_float_number;
+      Alcotest.test_case "range emitted" `Quick test_range_emitted ] )
