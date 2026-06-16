@@ -54,3 +54,12 @@ let compile_string ?(values = []) ?(resolver = default_resolver) (src : string) 
       | Ok bound ->
           let ir = Lower.lower bound in
           Success { prose = Backend_prose.render ir; json = Backend_openai.render ir })
+
+let compile_request ?(values = []) ?(resolver = default_resolver) (src : string) :
+    (Yojson.Safe.t, Error.t list) result =
+  match frontend ~resolver src with
+  | Error ds -> Error ds
+  | Ok (checked, fragments) -> (
+      match Bind.bind ~fragments checked values with
+      | Error ds -> Error ds
+      | Ok bound -> Ok (Backend_openai.render ~no_content_user:"" (Lower.lower bound)))

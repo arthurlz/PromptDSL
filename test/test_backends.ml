@@ -177,6 +177,23 @@ let test_prose_large_int_range () =
   Alcotest.(check bool) "plain int bound" true
     (contains (Backend_prose.render ir) "vol: int (0..1000000)")
 
+let test_run_request_user () =
+  (match
+     Compile.compile_request ~values:[ ("body", "hi") ]
+       {|agent "a" { input { body: string @content } goal "g" }|}
+   with
+   | Error _ -> Alcotest.fail "compile_request failed"
+   | Ok j ->
+       let open Yojson.Safe.Util in
+       let u = j |> member "messages" |> to_list |> List.rev |> List.hd |> member "content" |> to_string in
+       Alcotest.(check string) "content user" "hi" u);
+  (match Compile.compile_request {|agent "a" { goal "g" }|} with
+   | Error _ -> Alcotest.fail "compile_request failed"
+   | Ok j ->
+       let open Yojson.Safe.Util in
+       let u = j |> member "messages" |> to_list |> List.rev |> List.hd |> member "content" |> to_string in
+       Alcotest.(check string) "empty user (not placeholder)" "" u)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -189,4 +206,5 @@ let suite =
       Alcotest.test_case "extends end-to-end" `Quick test_extends_end_to_end;
       Alcotest.test_case "float number" `Quick test_float_number;
       Alcotest.test_case "range emitted" `Quick test_range_emitted;
-      Alcotest.test_case "prose large int range" `Quick test_prose_large_int_range ] )
+      Alcotest.test_case "prose large int range" `Quick test_prose_large_int_range;
+      Alcotest.test_case "run request user" `Quick test_run_request_user ] )
