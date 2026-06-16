@@ -211,6 +211,44 @@ let test_common_schema_object () =
   Alcotest.(check string) "enum is lowercase string" "string"
     (s |> member "properties" |> member "rating" |> member "type" |> to_string)
 
+(* Anthropic Messages body: top-level system, single user message, model +
+   max_tokens, output_config.format only for a typed schema. *)
+let test_anthropic () =
+  let open Yojson.Safe.Util in
+  let j = Backend_anthropic.render sample_ir in
+  Alcotest.(check string) "model" "claude-haiku-4-5-20251001"
+    (j |> member "model" |> to_string);
+  Alcotest.(check int) "max_tokens" 1024 (j |> member "max_tokens" |> to_int);
+  Alcotest.(check bool) "system is top-level" true (has_member j "system");
+  let roles =
+    j |> member "messages" |> to_list
+    |> List.map (fun m -> m |> member "role" |> to_string)
+  in
+  Alcotest.(check (list string)) "only a user message" [ "user" ] roles;
+  Alcotest.(check string) "format type" "json_schema"
+    (j |> member "output_config" |> member "format" |> member "type" |> to_string);
+  let schema = j |> member "output_config" |> member "format" |> member "schema" in
+  Alcotest.(check bool) "additionalProperties present (shared builder)" true
+    (has_member schema "additionalProperties");
+  Alcotest.(check string) "enum is lowercase string" "string"
+    (schema |> member "properties" |> member "rating" |> member "type" |> to_string)
+
+let test_anthropic_gating () =
+  Alcotest.(check bool) "text: no output_config" false
+    (has_member (Backend_anthropic.render (ir_with Ir.OText)) "output_config");
+  Alcotest.(check bool) "markdown: no output_config" false
+    (has_member (Backend_anthropic.render (ir_with Ir.OMarkdown)) "output_config");
+  Alcotest.(check bool) "bare json: no output_config" false
+    (has_member (Backend_anthropic.render (ir_with (Ir.OJson None))) "output_config")
+
+let test_anthropic_no_content () =
+  let open Yojson.Safe.Util in
+  let j = Backend_anthropic.render (ir_with Ir.OText) in
+  let u =
+    j |> member "messages" |> to_list |> List.hd |> member "content" |> to_string
+  in
+  Alcotest.(check string) "no-content user is placeholder" "{{input}}" u
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -225,4 +263,7 @@ let suite =
       Alcotest.test_case "range emitted" `Quick test_range_emitted;
       Alcotest.test_case "prose large int range" `Quick test_prose_large_int_range;
       Alcotest.test_case "run request user" `Quick test_run_request_user;
-      Alcotest.test_case "common schema_object" `Quick test_common_schema_object ] )
+      Alcotest.test_case "common schema_object" `Quick test_common_schema_object;
+      Alcotest.test_case "anthropic" `Quick test_anthropic;
+      Alcotest.test_case "anthropic gating" `Quick test_anthropic_gating;
+      Alcotest.test_case "anthropic no content" `Quick test_anthropic_no_content ] )
