@@ -167,6 +167,16 @@ let test_range_emitted () =
   Alcotest.(check bool) "prose range" true
     (contains (Backend_prose.render ir) "score: int (0..100)")
 
+(* Integral bounds render as plain integers in prose, not scientific notation. *)
+let test_prose_large_int_range () =
+  let ir =
+    { Ir.agent_name = "a"; objective = "g"; instructions = [];
+      out = Ir.OJson (Some [ { Ir.fname = "vol"; fty = Ir.SInt; required = true; range = Some (0., 1000000.) } ]);
+      content = None }
+  in
+  Alcotest.(check bool) "plain int bound" true
+    (contains (Backend_prose.render ir) "vol: int (0..1000000)")
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -178,4 +188,5 @@ let suite =
       Alcotest.test_case "import end-to-end" `Quick test_import_end_to_end;
       Alcotest.test_case "extends end-to-end" `Quick test_extends_end_to_end;
       Alcotest.test_case "float number" `Quick test_float_number;
-      Alcotest.test_case "range emitted" `Quick test_range_emitted ] )
+      Alcotest.test_case "range emitted" `Quick test_range_emitted;
+      Alcotest.test_case "prose large int range" `Quick test_prose_large_int_range ] )

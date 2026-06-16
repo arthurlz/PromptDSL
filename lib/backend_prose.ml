@@ -1,8 +1,13 @@
 open Ir
 
+(* Integral bounds print as plain integers (e.g. 1000000, not 1e+06); other
+   values use %g. *)
+let num_str v =
+  if Float.rem v 1.0 = 0.0 then Printf.sprintf "%.0f" v else Printf.sprintf "%g" v
+
 let range_str = function
   | None -> ""
-  | Some (lo, hi) -> Printf.sprintf " (%g..%g)" lo hi
+  | Some (lo, hi) -> Printf.sprintf " (%s..%s)" (num_str lo) (num_str hi)
 
 let rec render_ty = function
   | SString -> "string"
