@@ -38,6 +38,9 @@ rule token = parse
   | ':'            { COLON }
   | '?'            { QUESTION }
   | '='            { EQ }
+  | ".."                                { DOTDOT }
+  | ['0'-'9']+ '.' ['0'-'9']+ as f    { FLOAT_LIT (float_of_string f) }
+  | ['0'-'9']+ as n                   { INT_LIT (int_of_string n) }
   | '.'            { DOT }
   | "@content"     { CONTENT }
   | '"'            { let start_p = Lexing.lexeme_start_p lexbuf in

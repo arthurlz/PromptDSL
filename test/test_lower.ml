@@ -12,7 +12,7 @@ let test_lower () =
         Sema.COJson
           (Some
              [ { Ast.field_name = "ticker"; field_ty = Ast.TString;
-                 optional = false; field_loc = Location.dummy } ]);
+                 optional = false; field_loc = Location.dummy; field_range = None } ]);
       b_content = None;
     }
   in

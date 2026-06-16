@@ -169,6 +169,19 @@ let test_parse_float () =
            | _ -> Alcotest.fail "expected one field")
        | None -> Alcotest.fail "expected output")
 
+let test_parse_range () =
+  match Compile.parse {|agent "a" { goal "g" output json { score: int(0..100)  ratio: float(0.0..1.0) } }|} with
+  | Error e -> Alcotest.failf "parse: %s" e.Error.message
+  | Ok af -> (
+      match List.find_map (function Ast.IOutput o -> Some o.Ast.v | _ -> None) af.Ast.af_agent.Ast.block_items with
+      | Some ro -> (
+          match ro.Ast.out_schema with
+          | Some [ a; b ] ->
+              Alcotest.(check bool) "int range" true (a.Ast.field_range = Some (0., 100.));
+              Alcotest.(check bool) "float range" true (b.Ast.field_range = Some (0., 1.))
+          | _ -> Alcotest.fail "expected two fields")
+      | None -> Alcotest.fail "expected output")
+
 let suite =
   ( "parser",
     [ Alcotest.test_case "parse ok" `Quick test_parse_ok;
@@ -182,4 +195,5 @@ let suite =
       Alcotest.test_case "library" `Quick test_parse_library;
       Alcotest.test_case "template" `Quick test_parse_template;
       Alcotest.test_case "extends" `Quick test_parse_extends;
-      Alcotest.test_case "float" `Quick test_parse_float ] )
+      Alcotest.test_case "float" `Quick test_parse_float;
+      Alcotest.test_case "range" `Quick test_parse_range ] )

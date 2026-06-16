@@ -15,6 +15,7 @@ type field = {
   field_ty : ty;
   optional : bool;
   field_loc : Location.t;
+  field_range : (float * float) option;
 }
 
 type input_decl = {

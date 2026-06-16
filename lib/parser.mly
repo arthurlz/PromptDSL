@@ -13,6 +13,9 @@ let mkloc (s, e) = Location.of_positions s e
 %token <string> STRING
 %token LBRACE RBRACE LPAREN RPAREN LT GT COMMA COLON QUESTION
 %token EQ CONTENT
+%token <int> INT_LIT
+%token <float> FLOAT_LIT
+%token DOTDOT
 %token EOF
 
 %start <Ast.agent_file> program
@@ -74,8 +77,16 @@ schema_opt:
   | LBRACE fs = list(field) RBRACE { Some fs }
 
 field:
-  | name = IDENT q = boption(QUESTION) COLON t = ty
-    { { field_name = name; field_ty = t; optional = q; field_loc = mkloc $loc } }
+  | name = IDENT q = boption(QUESTION) COLON t = ty r = range_opt
+    { { field_name = name; field_ty = t; optional = q; field_loc = mkloc $loc; field_range = r } }
+
+range_opt:
+  | { None }
+  | LPAREN lo = number DOTDOT hi = number RPAREN { Some (lo, hi) }
+
+number:
+  | n = INT_LIT { float_of_int n }
+  | f = FLOAT_LIT { f }
 
 input_field:
   | name = IDENT COLON t = ty d = default_opt c = content_opt
