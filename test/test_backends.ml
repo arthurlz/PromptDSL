@@ -194,6 +194,23 @@ let test_run_request_user () =
        let u = j |> member "messages" |> to_list |> List.rev |> List.hd |> member "content" |> to_string in
        Alcotest.(check string) "empty user (not placeholder)" "" u)
 
+(* Backend_common.schema_object builds the lowercase JSON-Schema object shared
+   by OpenAI and Anthropic. *)
+let test_common_schema_object () =
+  let open Yojson.Safe.Util in
+  let fields =
+    [ { Ir.fname = "rating"; fty = Ir.SEnum [ "buy"; "sell" ]; required = true; range = None };
+      { Ir.fname = "note"; fty = Ir.SString; required = false; range = None } ]
+  in
+  let s = Backend_common.schema_object fields in
+  Alcotest.(check string) "object type" "object" (s |> member "type" |> to_string);
+  Alcotest.(check bool) "additionalProperties false" false
+    (s |> member "additionalProperties" |> to_bool);
+  Alcotest.(check (list string)) "required" [ "rating" ]
+    (s |> member "required" |> to_list |> List.map to_string);
+  Alcotest.(check string) "enum is lowercase string" "string"
+    (s |> member "properties" |> member "rating" |> member "type" |> to_string)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -207,4 +224,5 @@ let suite =
       Alcotest.test_case "float number" `Quick test_float_number;
       Alcotest.test_case "range emitted" `Quick test_range_emitted;
       Alcotest.test_case "prose large int range" `Quick test_prose_large_int_range;
-      Alcotest.test_case "run request user" `Quick test_run_request_user ] )
+      Alcotest.test_case "run request user" `Quick test_run_request_user;
+      Alcotest.test_case "common schema_object" `Quick test_common_schema_object ] )

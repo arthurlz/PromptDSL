@@ -1,47 +1,12 @@
 open Ir
 
-let rec json_of_ty = function
-  | SString -> `Assoc [ ("type", `String "string") ]
-  | SInt -> `Assoc [ ("type", `String "integer") ]
-  | SBool -> `Assoc [ ("type", `String "boolean") ]
-  | SFloat -> `Assoc [ ("type", `String "number") ]
-  | SEnum opts ->
-      `Assoc
-        [ ("type", `String "string");
-          ("enum", `List (List.map (fun s -> `String s) opts)) ]
-  | SList t -> `Assoc [ ("type", `String "array"); ("items", json_of_ty t) ]
-
-let response_format fields =
-  let with_range (f : Ir.schema_field) (base : Yojson.Safe.t) : Yojson.Safe.t =
-    match (f.range, base) with
-    | None, _ -> base
-    | Some (lo, hi), `Assoc kvs ->
-        let num v = match f.fty with Ir.SInt -> `Int (int_of_float v) | _ -> `Float v in
-        `Assoc (kvs @ [ ("minimum", num lo); ("maximum", num hi) ])
-    | Some _, j -> j
-  in
-  let props =
-    List.map (fun (f : Ir.schema_field) -> (f.fname, with_range f (json_of_ty f.fty))) fields
-  in
-  let required =
-    List.filter_map
-      (fun f -> if f.required then Some (`String f.fname) else None)
-      fields
-  in
+let response_format (fields : Ir.schema_field list) : Yojson.Safe.t =
   `Assoc
     [ ("type", `String "json_schema");
       ( "json_schema",
         `Assoc
           [ ("name", `String "output");
-            ( "schema",
-              `Assoc
-                [ ("type", `String "object");
-                  ("properties", `Assoc props);
-                  ("required", `List required);
-                  ("additionalProperties", `Bool false) ] ) ] ) ]
-
-let user_message ?(no_content_user = "{{input}}") (ir : Ir.t) : string =
-  match ir.content with None -> no_content_user | Some s -> s
+            ("schema", Backend_common.schema_object fields) ] ) ]
 
 let render ?(no_content_user = "{{input}}") (ir : Ir.t) : Yojson.Safe.t =
   let base =
@@ -52,7 +17,8 @@ let render ?(no_content_user = "{{input}}") (ir : Ir.t) : Yojson.Safe.t =
               [ ("role", `String "system");
                 ("content", `String (Backend_prose.render ir)) ];
             `Assoc
-              [ ("role", `String "user"); ("content", `String (user_message ~no_content_user ir)) ] ] ) ]
+              [ ("role", `String "user");
+                ("content", `String (Backend_common.user_message ~no_content_user ir)) ] ] ) ]
   in
   let fields =
     match ir.out with
