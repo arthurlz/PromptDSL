@@ -108,6 +108,33 @@ let test_import_end_to_end () =
       Alcotest.(check bool) "fragment substituted" true
         (contains o.Compile.prose "Analyze. Not advice.")
 
+let test_extends_end_to_end () =
+  let resolver = function
+    | "s.prompt" ->
+        Ok {|template Rater {
+               step { summarize }
+               output json { rating: enum("buy","sell") why: string }
+             }|}
+    | _ -> Error "no such file"
+  in
+  let src =
+    {|import "s.prompt" as s
+      agent "a" extends s.Rater {
+        input { topic: string }
+        goal "Rate {{topic}}."
+      }|}
+  in
+  match Compile.compile_string ~resolver ~values:[ ("topic", "TSLA") ] src with
+  | Compile.Failure ds ->
+      Alcotest.failf "unexpected failure: %s"
+        (String.concat "; " (List.map (fun (d : Error.t) -> d.Error.message) ds))
+  | Compile.Success o ->
+      let open Yojson.Safe.Util in
+      Alcotest.(check bool) "goal substituted" true (contains o.Compile.prose "Goal: Rate TSLA.");
+      Alcotest.(check bool) "step inherited" true (contains o.Compile.prose "Summarize the findings");
+      Alcotest.(check string) "output inherited" "json_schema"
+        (o.Compile.json |> member "response_format" |> member "type" |> to_string)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -116,4 +143,5 @@ let suite =
       Alcotest.test_case "prose output lines" `Quick test_prose_output_lines;
       Alcotest.test_case "content to user message" `Quick test_content_to_user_message;
       Alcotest.test_case "no input legacy user message" `Quick test_no_input_legacy_user_message;
-      Alcotest.test_case "import end-to-end" `Quick test_import_end_to_end ] )
+      Alcotest.test_case "import end-to-end" `Quick test_import_end_to_end;
+      Alcotest.test_case "extends end-to-end" `Quick test_extends_end_to_end ] )

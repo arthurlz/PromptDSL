@@ -34,9 +34,12 @@ let frontend ?(resolver = default_resolver) (src : string) :
       match Resolve.resolve ~parse_lib:parse_library ~resolver af.Ast.af_imports with
       | Error ds -> Error ds
       | Ok resolved -> (
-          match Sema.analyze ~fragments:resolved.Resolve.fragments af.Ast.af_agent with
+          match Expand.expand resolved af.Ast.af_agent with
           | Error ds -> Error ds
-          | Ok checked -> Ok (checked, resolved.Resolve.fragments)))
+          | Ok merged -> (
+              match Sema.analyze ~fragments:resolved.Resolve.fragments merged with
+              | Error ds -> Error ds
+              | Ok checked -> Ok (checked, resolved.Resolve.fragments))))
 
 let parse_and_check ?(resolver = default_resolver) (src : string) :
     (Sema.checked, Error.t list) result =
