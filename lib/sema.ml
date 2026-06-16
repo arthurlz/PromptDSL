@@ -73,6 +73,20 @@ let analyze ?(fragments : Resolve.fragments = []) (block : Ast.agent_block) : (c
         else Hashtbl.add seen f.field_name ())
       fields
   in
+  let check_field_ranges fields =
+    List.iter
+      (fun (f : Ast.field) ->
+        match f.field_range with
+        | None -> ()
+        | Some (lo, hi) -> (
+            match f.field_ty with
+            | Ast.TInt ->
+                if Float.rem lo 1.0 <> 0.0 || Float.rem hi 1.0 <> 0.0 then
+                  add (Error.make f.field_loc "int range bounds must be integers")
+            | Ast.TFloat -> ()
+            | _ -> add (Error.make f.field_loc "range is only allowed on int or float fields")))
+      fields
+  in
   List.iter
     (fun item ->
       match item with
@@ -158,6 +172,7 @@ let analyze ?(fragments : Resolve.fragments = []) (block : Ast.agent_block) : (c
                   | None -> output := Some (COJson None)
                   | Some fields ->
                       check_dup_fields fields;
+                      check_field_ranges fields;
                       output := Some (COJson (Some fields)))
               | other ->
                   add

@@ -198,6 +198,24 @@ let test_unknown_def () =
         (List.exists
            (fun (d : Error.t) -> d.Error.message = "no def 'nope' in import 'fin'") ds)
 
+let test_range_on_string () =
+  let ds = err_or_fail {|agent "a" { goal "g" output json { x: string(0..1) } }|} in
+  Alcotest.(check bool) "range on string" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "range is only allowed on int or float fields")
+       ds)
+
+let test_int_range_non_integer () =
+  let ds = err_or_fail {|agent "a" { goal "g" output json { x: int(0.5..1.0) } }|} in
+  Alcotest.(check bool) "non-integer int bounds" true
+    (List.exists
+       (fun (d : Error.t) -> d.Error.message = "int range bounds must be integers")
+       ds)
+
+let test_range_ok () =
+  let _ = ok_or_fail {|agent "a" { goal "g" output json { x: int(0..100)  y: float(0.0..1.0) } }|} in
+  ()
+
 let suite =
   ( "sema",
     [ Alcotest.test_case "levenshtein" `Quick test_levenshtein;
@@ -223,4 +241,7 @@ let suite =
       Alcotest.test_case "goal before input" `Quick test_goal_before_input;
       Alcotest.test_case "fragment ref ok" `Quick test_fragment_ref_ok;
       Alcotest.test_case "unknown alias" `Quick test_unknown_alias;
-      Alcotest.test_case "unknown def" `Quick test_unknown_def ] )
+      Alcotest.test_case "unknown def" `Quick test_unknown_def;
+      Alcotest.test_case "range on string" `Quick test_range_on_string;
+      Alcotest.test_case "int range non-integer" `Quick test_int_range_non_integer;
+      Alcotest.test_case "range ok" `Quick test_range_ok ] )
