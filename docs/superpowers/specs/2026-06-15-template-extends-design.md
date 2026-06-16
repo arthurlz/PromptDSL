@@ -133,3 +133,13 @@ Template inheritance chains (template `extends` template); multiple inheritance;
 per-step merge/append; local templates in agent files; standalone template
 validation; cross-lib reference scoping (merged refs resolve in the extender's
 scope only).
+
+## Known limitations
+
+- **Inherited-clause diagnostics misattribute the file.** When sema rejects a
+  clause that was *inherited* from a template (e.g. an inherited step references an
+  input the extender didn't declare), the diagnostic prints the agent's filename
+  with the *template's* line/col — a position that may not exist in the agent file.
+  Compiled output and exit codes are correct; only the error location is wrong.
+  Fixing it requires threading per-file provenance through `Location`/`resolve`/
+  `expand`/`error`. Deferred follow-up.
