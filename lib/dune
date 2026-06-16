@@ -1,7 +1,7 @@
 (library
  (name promptdsl)
  (public_name promptc.lib)
- (libraries yojson))
+ (libraries yojson unix))
 
 (ocamllex lexer)
 

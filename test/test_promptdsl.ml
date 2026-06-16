@@ -2,4 +2,5 @@ let () =
   Alcotest.run "promptdsl"
     [ Test_basics.suite; Test_parser.suite; Test_sema.suite;
       Test_lower.suite; Test_backends.suite; Test_interp.suite;
-      Test_bind.suite; Test_resolve.suite; Test_expand.suite ]
+      Test_bind.suite; Test_resolve.suite; Test_expand.suite;
+      Test_runtime.suite ]
