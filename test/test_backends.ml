@@ -249,6 +249,62 @@ let test_anthropic_no_content () =
   in
   Alcotest.(check string) "no-content user is placeholder" "{{input}}" u
 
+(* Gemini generateContent body: systemInstruction/contents use parts[].text,
+   responseSchema uses UPPERCASE types and has no additionalProperties, and the
+   model is NOT in the body (it lives in the URL). *)
+let test_gemini () =
+  let open Yojson.Safe.Util in
+  let j = Backend_gemini.render sample_ir in
+  let sys =
+    j |> member "systemInstruction" |> member "parts" |> to_list |> List.hd
+    |> member "text" |> to_string
+  in
+  Alcotest.(check bool) "system carries the goal" true (contains sys "Goal: analyze TSLA");
+  Alcotest.(check bool) "no model field in body" false (has_member j "model");
+  let gc = j |> member "generationConfig" in
+  Alcotest.(check string) "mime" "application/json"
+    (gc |> member "responseMimeType" |> to_string);
+  let schema = gc |> member "responseSchema" in
+  Alcotest.(check string) "object UPPERCASE" "OBJECT" (schema |> member "type" |> to_string);
+  Alcotest.(check string) "enum UPPERCASE STRING" "STRING"
+    (schema |> member "properties" |> member "rating" |> member "type" |> to_string);
+  Alcotest.(check bool) "no additionalProperties" false
+    (has_member schema "additionalProperties")
+
+let test_gemini_gating () =
+  let open Yojson.Safe.Util in
+  Alcotest.(check bool) "text: no generationConfig" false
+    (has_member (Backend_gemini.render (ir_with Ir.OText)) "generationConfig");
+  Alcotest.(check bool) "markdown: no generationConfig" false
+    (has_member (Backend_gemini.render (ir_with Ir.OMarkdown)) "generationConfig");
+  let gc = Backend_gemini.render (ir_with (Ir.OJson None)) |> member "generationConfig" in
+  Alcotest.(check string) "bare json: mime only" "application/json"
+    (gc |> member "responseMimeType" |> to_string);
+  Alcotest.(check bool) "bare json: no responseSchema" false
+    (has_member gc "responseSchema")
+
+let test_gemini_range_and_list () =
+  let open Yojson.Safe.Util in
+  let ir =
+    { Ir.agent_name = "a"; objective = "g"; instructions = [];
+      out = Ir.OJson (Some [
+        { Ir.fname = "score"; fty = Ir.SInt; required = true; range = Some (0., 100.) };
+        { Ir.fname = "tags"; fty = Ir.SList Ir.SString; required = false; range = None } ]);
+      content = None }
+  in
+  let props =
+    Backend_gemini.render ir |> member "generationConfig" |> member "responseSchema"
+    |> member "properties"
+  in
+  Alcotest.(check string) "int UPPERCASE" "INTEGER"
+    (props |> member "score" |> member "type" |> to_string);
+  Alcotest.(check int) "min" 0 (props |> member "score" |> member "minimum" |> to_int);
+  Alcotest.(check int) "max" 100 (props |> member "score" |> member "maximum" |> to_int);
+  Alcotest.(check string) "list UPPERCASE ARRAY" "ARRAY"
+    (props |> member "tags" |> member "type" |> to_string);
+  Alcotest.(check string) "items UPPERCASE STRING" "STRING"
+    (props |> member "tags" |> member "items" |> member "type" |> to_string)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -266,4 +322,7 @@ let suite =
       Alcotest.test_case "common schema_object" `Quick test_common_schema_object;
       Alcotest.test_case "anthropic" `Quick test_anthropic;
       Alcotest.test_case "anthropic gating" `Quick test_anthropic_gating;
-      Alcotest.test_case "anthropic no content" `Quick test_anthropic_no_content ] )
+      Alcotest.test_case "anthropic no content" `Quick test_anthropic_no_content;
+      Alcotest.test_case "gemini" `Quick test_gemini;
+      Alcotest.test_case "gemini gating" `Quick test_gemini_gating;
+      Alcotest.test_case "gemini range and list" `Quick test_gemini_range_and_list ] )
