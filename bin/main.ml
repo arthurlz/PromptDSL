@@ -25,7 +25,12 @@ let check_cmd =
   let term = Term.(const Driver.run_check $ file_arg) in
   Cmd.v (Cmd.info "check" ~doc) term
 
+let run_cmd =
+  let doc = "Compile a .prompt file and run it against the OpenAI API." in
+  let term = Term.(const Driver.run_run $ file_arg $ set_arg) in
+  Cmd.v (Cmd.info "run" ~doc) term
+
 let () =
   let doc = "A Prompt DSL compiler." in
   let info = Cmd.info "promptc" ~version:"0.1.0" ~doc in
-  exit (Cmd.eval' (Cmd.group info [ compile_cmd; check_cmd ]))
+  exit (Cmd.eval' (Cmd.group info [ compile_cmd; check_cmd; run_cmd ]))
