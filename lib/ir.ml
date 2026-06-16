@@ -2,6 +2,7 @@ type schema_ty =
   | SString
   | SInt
   | SBool
+  | SFloat
   | SEnum of string list
   | SList of schema_ty
 

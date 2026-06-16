@@ -70,6 +70,16 @@ let test_fragment_subst () =
           | Error _ -> Alcotest.fail "bind error"
           | Ok b -> Alcotest.(check string) "subst" "X D" b.Bind.b_goal))
 
+let test_float_input () =
+  (match bind {|agent "a" { input { pe: float } goal "{{pe}}" }|} [ ("pe", "12.5") ] with
+   | Ok b -> Alcotest.(check string) "ok" "12.5" b.Bind.b_goal
+   | Error _ -> Alcotest.fail "expected ok");
+  (match bind {|agent "a" { input { pe: float } goal "{{pe}}" }|} [ ("pe", "abc") ] with
+   | Ok _ -> Alcotest.fail "expected type error"
+   | Error ds ->
+       Alcotest.(check bool) "bad" true
+         (List.exists (fun (d : Error.t) -> d.Error.message = "input 'pe': expected a number, got \"abc\"") ds))
+
 let suite =
   ( "bind",
     [ Alcotest.test_case "subst + default" `Quick test_subst_and_default;
@@ -80,4 +90,5 @@ let suite =
       Alcotest.test_case "no input block" `Quick test_no_input_block_content_none;
       Alcotest.test_case "empty input block" `Quick test_empty_input_block_content;
       Alcotest.test_case "set last-wins" `Quick test_set_last_wins;
-      Alcotest.test_case "fragment subst" `Quick test_fragment_subst ] )
+      Alcotest.test_case "fragment subst" `Quick test_fragment_subst;
+      Alcotest.test_case "float input" `Quick test_float_input ] )

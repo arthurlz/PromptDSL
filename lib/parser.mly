@@ -8,7 +8,7 @@ let mkloc (s, e) = Location.of_positions s e
 %token AGENT GOAL STEP OUTPUT INPUT
 %token IMPORT AS DEF
 %token TEMPLATE EXTENDS DOT
-%token STRING_TY INT_TY BOOL_TY ENUM LIST
+%token STRING_TY INT_TY BOOL_TY FLOAT_TY ENUM LIST
 %token <string> IDENT
 %token <string> STRING
 %token LBRACE RBRACE LPAREN RPAREN LT GT COMMA COLON QUESTION
@@ -93,5 +93,6 @@ ty:
   | STRING_TY { TString }
   | INT_TY    { TInt }
   | BOOL_TY   { TBool }
+  | FLOAT_TY  { TFloat }
   | ENUM LPAREN opts = separated_nonempty_list(COMMA, STRING) RPAREN { TEnum opts }
   | LIST LT t = ty GT { TList t }

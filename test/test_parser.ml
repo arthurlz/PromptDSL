@@ -154,6 +154,21 @@ let test_parse_extends () =
           Alcotest.(check string) "name" "Rater" name
       | None -> Alcotest.fail "expected extends")
 
+let test_parse_float () =
+  match Compile.parse {|agent "a" { input { pe: float } goal "g" output json { p: float } }|} with
+  | Error e -> Alcotest.failf "parse: %s" e.Error.message
+  | Ok af ->
+      let items = af.Ast.af_agent.Ast.block_items in
+      (match List.find_map (function Ast.IInputs n -> Some n.Ast.v | _ -> None) items with
+       | Some [ d ] -> Alcotest.(check bool) "float input" true (d.Ast.in_ty = Ast.TFloat)
+       | _ -> Alcotest.fail "expected one input");
+      (match List.find_map (function Ast.IOutput o -> Some o.Ast.v | _ -> None) items with
+       | Some ro -> (
+           match ro.Ast.out_schema with
+           | Some [ f ] -> Alcotest.(check bool) "float field" true (f.Ast.field_ty = Ast.TFloat)
+           | _ -> Alcotest.fail "expected one field")
+       | None -> Alcotest.fail "expected output")
+
 let suite =
   ( "parser",
     [ Alcotest.test_case "parse ok" `Quick test_parse_ok;
@@ -166,4 +181,5 @@ let suite =
       Alcotest.test_case "import+agent" `Quick test_parse_import_and_agent;
       Alcotest.test_case "library" `Quick test_parse_library;
       Alcotest.test_case "template" `Quick test_parse_template;
-      Alcotest.test_case "extends" `Quick test_parse_extends ] )
+      Alcotest.test_case "extends" `Quick test_parse_extends;
+      Alcotest.test_case "float" `Quick test_parse_float ] )

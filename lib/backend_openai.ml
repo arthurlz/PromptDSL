@@ -4,6 +4,7 @@ let rec json_of_ty = function
   | SString -> `Assoc [ ("type", `String "string") ]
   | SInt -> `Assoc [ ("type", `String "integer") ]
   | SBool -> `Assoc [ ("type", `String "boolean") ]
+  | SFloat -> `Assoc [ ("type", `String "number") ]
   | SEnum opts ->
       `Assoc
         [ ("type", `String "string");

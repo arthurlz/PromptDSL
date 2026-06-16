@@ -135,6 +135,19 @@ let test_extends_end_to_end () =
       Alcotest.(check string) "output inherited" "json_schema"
         (o.Compile.json |> member "response_format" |> member "type" |> to_string)
 
+let test_float_number () =
+  let ir =
+    { Ir.agent_name = "a"; objective = "g"; instructions = [];
+      out = Ir.OJson (Some [ { Ir.fname = "p"; fty = Ir.SFloat; required = true } ]);
+      content = None }
+  in
+  let open Yojson.Safe.Util in
+  let t =
+    Backend_openai.render ir |> member "response_format" |> member "json_schema"
+    |> member "schema" |> member "properties" |> member "p" |> member "type" |> to_string
+  in
+  Alcotest.(check string) "float -> number" "number" t
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -144,4 +157,5 @@ let suite =
       Alcotest.test_case "content to user message" `Quick test_content_to_user_message;
       Alcotest.test_case "no input legacy user message" `Quick test_no_input_legacy_user_message;
       Alcotest.test_case "import end-to-end" `Quick test_import_end_to_end;
-      Alcotest.test_case "extends end-to-end" `Quick test_extends_end_to_end ] )
+      Alcotest.test_case "extends end-to-end" `Quick test_extends_end_to_end;
+      Alcotest.test_case "float number" `Quick test_float_number ] )

@@ -6,6 +6,7 @@ type ty =
   | TString
   | TInt
   | TBool
+  | TFloat
   | TEnum of string list
   | TList of ty
 

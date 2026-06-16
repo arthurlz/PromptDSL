@@ -18,6 +18,10 @@ let typecheck (ty : Ast.ty) (v : string) : (unit, string) result =
   | Ast.TEnum opts ->
       if List.mem v opts then Ok ()
       else Error (Printf.sprintf "expected one of %s, got %S" (String.concat "/" opts) v)
+  | Ast.TFloat -> (
+      match float_of_string_opt v with
+      | Some _ -> Ok ()
+      | None -> Error (Printf.sprintf "expected a number, got %S" v))
   | Ast.TList _ -> Error "list inputs are not supported"
 
 let bind ?(fragments : Resolve.fragments = []) (c : Sema.checked)

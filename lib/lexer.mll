@@ -9,7 +9,7 @@ let loc_of lexbuf =
 let keywords =
   [ ("agent", AGENT); ("goal", GOAL); ("step", STEP); ("output", OUTPUT);
     ("input", INPUT);
-    ("string", STRING_TY); ("int", INT_TY); ("bool", BOOL_TY);
+    ("string", STRING_TY); ("int", INT_TY); ("bool", BOOL_TY); ("float", FLOAT_TY);
     ("enum", ENUM); ("list", LIST);
     ("import", IMPORT); ("as", AS); ("def", DEF);
     ("template", TEMPLATE); ("extends", EXTENDS) ]

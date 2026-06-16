@@ -19,6 +19,7 @@ let rec ty_to_ir (t : Ast.ty) : Ir.schema_ty =
   | Ast.TString -> Ir.SString
   | Ast.TInt -> Ir.SInt
   | Ast.TBool -> Ir.SBool
+  | Ast.TFloat -> Ir.SFloat
   | Ast.TEnum opts -> Ir.SEnum opts
   | Ast.TList t -> Ir.SList (ty_to_ir t)
 

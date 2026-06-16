@@ -4,6 +4,7 @@ let rec render_ty = function
   | SString -> "string"
   | SInt -> "int"
   | SBool -> "bool"
+  | SFloat -> "float"
   | SEnum opts -> "enum(" ^ String.concat ", " opts ^ ")"
   | SList t -> "list<" ^ render_ty t ^ ">"
 
