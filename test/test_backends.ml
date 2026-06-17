@@ -305,6 +305,25 @@ let test_gemini_range_and_list () =
   Alcotest.(check string) "items UPPERCASE STRING" "STRING"
     (props |> member "tags" |> member "items" |> member "type" |> to_string)
 
+(* compile_string dispatches the JSON renderer by target; prose is unchanged. *)
+let test_compile_string_target () =
+  let open Yojson.Safe.Util in
+  let src = {|agent "r" { goal "g" output json { x: string } }|} in
+  let model outcome =
+    match outcome with
+    | Compile.Failure _ -> Alcotest.fail "unexpected failure"
+    | Compile.Success o -> o.Compile.json
+  in
+  let oa = model (Compile.compile_string ~target:`OpenAI src) in
+  Alcotest.(check string) "openai model" "gpt-4o-mini" (oa |> member "model" |> to_string);
+  let an = model (Compile.compile_string ~target:`Anthropic src) in
+  Alcotest.(check string) "anthropic model" "claude-haiku-4-5-20251001"
+    (an |> member "model" |> to_string);
+  let ge = model (Compile.compile_string ~target:`Gemini src) in
+  Alcotest.(check bool) "gemini has contents" true (has_member ge "contents");
+  let def = model (Compile.compile_string src) in
+  Alcotest.(check string) "default model" "gpt-4o-mini" (def |> member "model" |> to_string)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -325,4 +344,5 @@ let suite =
       Alcotest.test_case "anthropic no content" `Quick test_anthropic_no_content;
       Alcotest.test_case "gemini" `Quick test_gemini;
       Alcotest.test_case "gemini gating" `Quick test_gemini_gating;
-      Alcotest.test_case "gemini range and list" `Quick test_gemini_range_and_list ] )
+      Alcotest.test_case "gemini range and list" `Quick test_gemini_range_and_list;
+      Alcotest.test_case "compile_string target" `Quick test_compile_string_target ] )

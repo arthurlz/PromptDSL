@@ -62,7 +62,8 @@ let run_run (file : string) (sets : string list) : int =
                   | Ok out -> print_string out; print_newline (); 0
                   | Error m -> prerr_endline m; 1))))
 
-let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : string list) : int =
+let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : string list)
+    (target : [ `OpenAI | `Anthropic | `Gemini ]) : int =
   let rec parse acc = function
     | [] -> Ok (List.rev acc)
     | s :: rest -> (
@@ -75,7 +76,7 @@ let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : stri
       | exception Sys_error msg -> prerr_endline msg; 2
       | src -> (
           let resolver = fs_resolver (Filename.dirname file) in
-          match Compile.compile_string ~values ~resolver src with
+          match Compile.compile_string ~values ~resolver ~target src with
           | Compile.Failure ds -> print_diags file ds; 1
           | Compile.Success o ->
               (match emit with

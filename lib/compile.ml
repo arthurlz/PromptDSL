@@ -45,7 +45,8 @@ let parse_and_check ?(resolver = default_resolver) (src : string) :
     (Sema.checked, Error.t list) result =
   Result.map fst (frontend ~resolver src)
 
-let compile_string ?(values = []) ?(resolver = default_resolver) (src : string) : outcome =
+let compile_string ?(values = []) ?(resolver = default_resolver)
+    ?(target : [ `OpenAI | `Anthropic | `Gemini ] = `OpenAI) (src : string) : outcome =
   match frontend ~resolver src with
   | Error ds -> Failure ds
   | Ok (checked, fragments) -> (
@@ -53,7 +54,13 @@ let compile_string ?(values = []) ?(resolver = default_resolver) (src : string) 
       | Error ds -> Failure ds
       | Ok bound ->
           let ir = Lower.lower bound in
-          Success { prose = Backend_prose.render ir; json = Backend_openai.render ir })
+          let json =
+            match target with
+            | `OpenAI -> Backend_openai.render ir
+            | `Anthropic -> Backend_anthropic.render ir
+            | `Gemini -> Backend_gemini.render ir
+          in
+          Success { prose = Backend_prose.render ir; json })
 
 let compile_request ?(values = []) ?(resolver = default_resolver) (src : string) :
     (Yojson.Safe.t, Error.t list) result =
