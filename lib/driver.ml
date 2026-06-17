@@ -41,14 +41,16 @@ let provider_of_target = function
   | `Gemini -> Runtime.gemini
 
 let run_run (file : string) (sets : string list)
-    (target : [ `OpenAI | `Anthropic | `Gemini ]) : int =
+    (target : [ `OpenAI | `Anthropic | `Gemini ]) (model_opt : string option) : int =
   let provider = provider_of_target target in
   match Sys.getenv_opt provider.Runtime.env_var with
   | None | Some "" ->
       prerr_endline (provider.Runtime.env_var ^ " is not set");
       2
   | Some api_key -> (
-      let model = provider.Runtime.default_model in
+      let model =
+        match model_opt with Some m -> m | None -> provider.Runtime.default_model
+      in
       let rec parse acc = function
         | [] -> Ok (List.rev acc)
         | s :: rest -> (
@@ -61,7 +63,7 @@ let run_run (file : string) (sets : string list)
           | exception Sys_error msg -> prerr_endline msg; 2
           | src -> (
               let resolver = fs_resolver (Filename.dirname file) in
-              match Compile.compile_request ~values ~resolver ~target src with
+              match Compile.compile_request ~values ~resolver ~target ?model:(Some model) src with
               | Error ds -> print_diags file ds; 1
               | Ok request -> (
                   match
@@ -73,7 +75,7 @@ let run_run (file : string) (sets : string list)
                   | Error m -> prerr_endline m; 1))))
 
 let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : string list)
-    (target : [ `OpenAI | `Anthropic | `Gemini ]) : int =
+    (target : [ `OpenAI | `Anthropic | `Gemini ]) (model : string option) : int =
   let rec parse acc = function
     | [] -> Ok (List.rev acc)
     | s :: rest -> (
@@ -86,7 +88,7 @@ let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : stri
       | exception Sys_error msg -> prerr_endline msg; 2
       | src -> (
           let resolver = fs_resolver (Filename.dirname file) in
-          match Compile.compile_string ~values ~resolver ~target src with
+          match Compile.compile_string ~values ~resolver ~target ?model src with
           | Compile.Failure ds -> print_diags file ds; 1
           | Compile.Success o ->
               (match emit with

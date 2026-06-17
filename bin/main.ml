@@ -22,9 +22,13 @@ let target_arg =
   let doc = "Which provider request to emit: openai (default), anthropic, or gemini." in
   Arg.(value & opt target_conv `OpenAI & info [ "target" ] ~docv:"PROVIDER" ~doc)
 
+let model_arg =
+  let doc = "Model id to use, overriding the target's default (e.g. $(b,--model gpt-4o))." in
+  Arg.(value & opt (some string) None & info [ "model" ] ~docv:"MODEL" ~doc)
+
 let compile_cmd =
   let doc = "Compile a .prompt file to a prompt and/or a provider request." in
-  let term = Term.(const Driver.run_compile $ file_arg $ emit_arg $ set_arg $ target_arg) in
+  let term = Term.(const Driver.run_compile $ file_arg $ emit_arg $ set_arg $ target_arg $ model_arg) in
   Cmd.v (Cmd.info "compile" ~doc) term
 
 let check_cmd =
@@ -34,7 +38,7 @@ let check_cmd =
 
 let run_cmd =
   let doc = "Compile a .prompt file and run it against a provider's API (default OpenAI; see --target)." in
-  let term = Term.(const Driver.run_run $ file_arg $ set_arg $ target_arg) in
+  let term = Term.(const Driver.run_run $ file_arg $ set_arg $ target_arg $ model_arg) in
   Cmd.v (Cmd.info "run" ~doc) term
 
 let () =

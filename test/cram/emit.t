@@ -46,3 +46,9 @@ A missing file is reported on stderr and exits 2:
   $ promptc compile no-such-file.prompt
   no-such-file.prompt: No such file or directory
   [2]
+
+The --model flag overrides the default model in the request:
+
+  $ promptc compile researcher.prompt --model gpt-4o --emit json | head -2
+  {
+    "model": "gpt-4o",
