@@ -3,6 +3,8 @@ open Ir
 (* POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$GEMINI_API_KEY
    The model is in the URL, so it is NOT part of this body. *)
 
+let default_model = "gemini-2.5-flash"
+
 (* Gemini responseSchema uses UPPERCASE OpenAPI-style type names. *)
 let rec gemini_of_ty = function
   | SString -> `Assoc [ ("type", `String "STRING") ]

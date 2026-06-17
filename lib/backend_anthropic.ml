@@ -13,9 +13,11 @@ let output_config (fields : Ir.schema_field list) : Yojson.Safe.t =
           [ ("type", `String "json_schema");
             ("schema", Backend_common.schema_object fields) ] ) ]
 
-let render ?(no_content_user = "{{input}}") (ir : Ir.t) : Yojson.Safe.t =
+let default_model = "claude-haiku-4-5-20251001"
+
+let render ?(no_content_user = "{{input}}") ?(model = default_model) (ir : Ir.t) : Yojson.Safe.t =
   let base =
-    [ ("model", `String "claude-haiku-4-5-20251001");
+    [ ("model", `String model);
       ("max_tokens", `Int 1024);
       ("system", `String (Backend_prose.render ir));
       ( "messages",

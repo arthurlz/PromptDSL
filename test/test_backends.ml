@@ -355,6 +355,22 @@ let test_compile_request_targets () =
        in
        Alcotest.(check string) "gemini content text" "hey" t)
 
+(* --model overrides the body model for OpenAI/Anthropic; Gemini exposes the
+   default as a constant (its body carries no model). *)
+let test_model_override () =
+  let open Yojson.Safe.Util in
+  let ir = ir_with Ir.OText in
+  Alcotest.(check string) "openai default" "gpt-4o-mini"
+    (Backend_openai.render ir |> member "model" |> to_string);
+  Alcotest.(check string) "openai override" "gpt-4o"
+    (Backend_openai.render ~model:"gpt-4o" ir |> member "model" |> to_string);
+  Alcotest.(check string) "anthropic default" "claude-haiku-4-5-20251001"
+    (Backend_anthropic.render ir |> member "model" |> to_string);
+  Alcotest.(check string) "anthropic override" "claude-opus-4-8"
+    (Backend_anthropic.render ~model:"claude-opus-4-8" ir |> member "model" |> to_string);
+  Alcotest.(check string) "gemini default_model const" "gemini-2.5-flash"
+    Backend_gemini.default_model
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -377,4 +393,5 @@ let suite =
       Alcotest.test_case "gemini gating" `Quick test_gemini_gating;
       Alcotest.test_case "gemini range and list" `Quick test_gemini_range_and_list;
       Alcotest.test_case "compile_string target" `Quick test_compile_string_target;
-      Alcotest.test_case "compile_request targets" `Quick test_compile_request_targets ] )
+      Alcotest.test_case "compile_request targets" `Quick test_compile_request_targets;
+      Alcotest.test_case "model override" `Quick test_model_override ] )
