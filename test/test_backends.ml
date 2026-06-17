@@ -324,6 +324,37 @@ let test_compile_string_target () =
   let def = model (Compile.compile_string src) in
   Alcotest.(check string) "default model" "gpt-4o-mini" (def |> member "model" |> to_string)
 
+(* compile_request builds each provider's body with the run-time user message
+   (bound @content, or "" when none — never the {{input}} placeholder). *)
+let test_compile_request_targets () =
+  let open Yojson.Safe.Util in
+  (match
+     Compile.compile_request ~target:`Anthropic ~values:[ ("body", "hi") ]
+       {|agent "a" { input { body: string @content } goal "g" }|}
+   with
+   | Error _ -> Alcotest.fail "anthropic compile_request failed"
+   | Ok j ->
+       Alcotest.(check string) "anthropic model" "claude-haiku-4-5-20251001"
+         (j |> member "model" |> to_string);
+       let u = j |> member "messages" |> to_list |> List.hd |> member "content" |> to_string in
+       Alcotest.(check string) "anthropic content user" "hi" u);
+  (match Compile.compile_request ~target:`Anthropic {|agent "a" { goal "g" }|} with
+   | Error _ -> Alcotest.fail "anthropic compile_request failed"
+   | Ok j ->
+       let u = j |> member "messages" |> to_list |> List.hd |> member "content" |> to_string in
+       Alcotest.(check string) "anthropic empty user (not placeholder)" "" u);
+  (match
+     Compile.compile_request ~target:`Gemini ~values:[ ("body", "hey") ]
+       {|agent "a" { input { body: string @content } goal "g" }|}
+   with
+   | Error _ -> Alcotest.fail "gemini compile_request failed"
+   | Ok j ->
+       let t =
+         j |> member "contents" |> to_list |> List.hd |> member "parts" |> to_list
+         |> List.hd |> member "text" |> to_string
+       in
+       Alcotest.(check string) "gemini content text" "hey" t)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -345,4 +376,5 @@ let suite =
       Alcotest.test_case "gemini" `Quick test_gemini;
       Alcotest.test_case "gemini gating" `Quick test_gemini_gating;
       Alcotest.test_case "gemini range and list" `Quick test_gemini_range_and_list;
-      Alcotest.test_case "compile_string target" `Quick test_compile_string_target ] )
+      Alcotest.test_case "compile_string target" `Quick test_compile_string_target;
+      Alcotest.test_case "compile_request targets" `Quick test_compile_request_targets ] )

@@ -34,7 +34,7 @@ let gemini_schema_object (fields : Ir.schema_field list) : Yojson.Safe.t =
       ("properties", `Assoc props);
       ("required", `List required) ]
 
-let render (ir : Ir.t) : Yojson.Safe.t =
+let render ?(no_content_user = "{{input}}") (ir : Ir.t) : Yojson.Safe.t =
   let base =
     [ ( "systemInstruction",
         `Assoc [ ("parts", `List [ `Assoc [ ("text", `String (Backend_prose.render ir)) ] ]) ] );
@@ -43,7 +43,7 @@ let render (ir : Ir.t) : Yojson.Safe.t =
           [ `Assoc
               [ ("role", `String "user");
                 ( "parts",
-                  `List [ `Assoc [ ("text", `String (Backend_common.user_message ir)) ] ] ) ] ] ) ]
+                  `List [ `Assoc [ ("text", `String (Backend_common.user_message ~no_content_user ir)) ] ] ) ] ] ) ]
   in
   let gen_config =
     match ir.out with

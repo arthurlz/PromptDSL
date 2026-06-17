@@ -13,7 +13,7 @@ let output_config (fields : Ir.schema_field list) : Yojson.Safe.t =
           [ ("type", `String "json_schema");
             ("schema", Backend_common.schema_object fields) ] ) ]
 
-let render (ir : Ir.t) : Yojson.Safe.t =
+let render ?(no_content_user = "{{input}}") (ir : Ir.t) : Yojson.Safe.t =
   let base =
     [ ("model", `String "claude-haiku-4-5-20251001");
       ("max_tokens", `Int 1024);
@@ -22,7 +22,7 @@ let render (ir : Ir.t) : Yojson.Safe.t =
         `List
           [ `Assoc
               [ ("role", `String "user");
-                ("content", `String (Backend_common.user_message ir)) ] ] ) ]
+                ("content", `String (Backend_common.user_message ~no_content_user ir)) ] ] ) ]
   in
   let fields =
     match ir.out with
