@@ -34,7 +34,7 @@ let check_cmd =
 
 let run_cmd =
   let doc = "Compile a .prompt file and run it against the OpenAI API." in
-  let term = Term.(const Driver.run_run $ file_arg $ set_arg) in
+  let term = Term.(const Driver.run_run $ file_arg $ set_arg $ target_arg) in
   Cmd.v (Cmd.info "run" ~doc) term
 
 let () =

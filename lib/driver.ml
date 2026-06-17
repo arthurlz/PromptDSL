@@ -35,10 +35,17 @@ let parse_set (s : string) : ((string * string), string) result =
   | Some i -> Ok (String.sub s 0 i, String.sub s (i + 1) (String.length s - i - 1))
   | None -> Error (Printf.sprintf "invalid --set %S (expected KEY=VALUE)" s)
 
-let run_run (file : string) (sets : string list) : int =
-  match Sys.getenv_opt "OPENAI_API_KEY" with
+let provider_of_target = function
+  | `OpenAI -> Runtime.openai
+  | `Anthropic -> Runtime.anthropic
+  | `Gemini -> Runtime.gemini
+
+let run_run (file : string) (sets : string list)
+    (target : [ `OpenAI | `Anthropic | `Gemini ]) : int =
+  let provider = provider_of_target target in
+  match Sys.getenv_opt provider.Runtime.env_var with
   | None | Some "" ->
-      prerr_endline "OPENAI_API_KEY is not set";
+      prerr_endline (provider.Runtime.env_var ^ " is not set");
       2
   | Some api_key -> (
       let rec parse acc = function
@@ -53,12 +60,12 @@ let run_run (file : string) (sets : string list) : int =
           | exception Sys_error msg -> prerr_endline msg; 2
           | src -> (
               let resolver = fs_resolver (Filename.dirname file) in
-              match Compile.compile_request ~values ~resolver src with
+              match Compile.compile_request ~values ~resolver ~target src with
               | Error ds -> print_diags file ds; 1
               | Ok request -> (
                   match
-                    Runtime.execute ~provider:Runtime.openai
-                      ~transport:(Runtime.curl_transport ~provider:Runtime.openai ~api_key)
+                    Runtime.execute ~provider
+                      ~transport:(Runtime.curl_transport ~provider ~api_key)
                       request
                   with
                   | Ok out -> print_string out; print_newline (); 0
