@@ -57,7 +57,9 @@ let run_run (file : string) (sets : string list) : int =
               | Error ds -> print_diags file ds; 1
               | Ok request -> (
                   match
-                    Runtime.execute ~transport:(Runtime.curl_transport ~api_key) request
+                    Runtime.execute ~provider:Runtime.openai
+                      ~transport:(Runtime.curl_transport ~provider:Runtime.openai ~api_key)
+                      request
                   with
                   | Ok out -> print_string out; print_newline (); 0
                   | Error m -> prerr_endline m; 1))))
