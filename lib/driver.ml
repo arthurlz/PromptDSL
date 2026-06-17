@@ -48,6 +48,7 @@ let run_run (file : string) (sets : string list)
       prerr_endline (provider.Runtime.env_var ^ " is not set");
       2
   | Some api_key -> (
+      let model = provider.Runtime.default_model in
       let rec parse acc = function
         | [] -> Ok (List.rev acc)
         | s :: rest -> (
@@ -65,7 +66,7 @@ let run_run (file : string) (sets : string list)
               | Ok request -> (
                   match
                     Runtime.execute ~provider
-                      ~transport:(Runtime.curl_transport ~provider ~api_key)
+                      ~transport:(Runtime.curl_transport ~provider ~model ~api_key)
                       request
                   with
                   | Ok out -> print_string out; print_newline (); 0

@@ -78,6 +78,16 @@ let test_gemini_bad_shape () =
   | Error _ -> ()
   | Ok _ -> Alcotest.fail "expected error"
 
+let test_endpoints () =
+  Alcotest.(check string) "openai endpoint static"
+    "https://api.openai.com/v1/chat/completions"
+    (Runtime.openai.Runtime.endpoint ~model:"ignored" ~api_key:"K");
+  Alcotest.(check string) "gemini endpoint embeds model + key"
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=K"
+    (Runtime.gemini.Runtime.endpoint ~model:"gemini-2.0-flash" ~api_key:"K");
+  Alcotest.(check string) "gemini default_model" "gemini-2.5-flash"
+    Runtime.gemini.Runtime.default_model
+
 let suite =
   ( "runtime",
     [ Alcotest.test_case "openai text" `Quick test_openai_text;
@@ -92,4 +102,5 @@ let suite =
       Alcotest.test_case "gemini text" `Quick test_gemini_text;
       Alcotest.test_case "gemini json" `Quick test_gemini_json;
       Alcotest.test_case "gemini error" `Quick test_gemini_error;
-      Alcotest.test_case "gemini bad shape" `Quick test_gemini_bad_shape ] )
+      Alcotest.test_case "gemini bad shape" `Quick test_gemini_bad_shape;
+      Alcotest.test_case "endpoints" `Quick test_endpoints ] )

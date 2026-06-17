@@ -2,7 +2,8 @@ type transport = string -> (string, string) result
 
 type provider = {
   env_var : string;
-  endpoint : string -> string;                          (* api_key -> URL *)
+  default_model : string;                                (* built-in model when --model omitted *)
+  endpoint : model:string -> api_key:string -> string;   (* URL (Gemini embeds the model) *)
   headers : string -> (string * string) list;            (* api_key -> extra headers *)
   extract : Yojson.Safe.t -> (string, string) result;    (* response JSON -> reply text | error *)
 }
@@ -62,22 +63,25 @@ let gemini_extract (resp : Yojson.Safe.t) : (string, string) result =
 
 let openai : provider =
   { env_var = "OPENAI_API_KEY";
-    endpoint = (fun _ -> "https://api.openai.com/v1/chat/completions");
+    default_model = Backend_openai.default_model;
+    endpoint = (fun ~model:_ ~api_key:_ -> "https://api.openai.com/v1/chat/completions");
     headers = (fun k -> [ ("Authorization", "Bearer " ^ k) ]);
     extract = openai_extract }
 
 let anthropic : provider =
   { env_var = "ANTHROPIC_API_KEY";
-    endpoint = (fun _ -> "https://api.anthropic.com/v1/messages");
+    default_model = Backend_anthropic.default_model;
+    endpoint = (fun ~model:_ ~api_key:_ -> "https://api.anthropic.com/v1/messages");
     headers = (fun k -> [ ("x-api-key", k); ("anthropic-version", "2023-06-01") ]);
     extract = anthropic_extract }
 
 let gemini : provider =
   { env_var = "GEMINI_API_KEY";
+    default_model = Backend_gemini.default_model;
     endpoint =
-      (fun k ->
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
-        ^ k);
+      (fun ~model ~api_key ->
+        "https://generativelanguage.googleapis.com/v1beta/models/" ^ model
+        ^ ":generateContent?key=" ^ api_key);
     headers = (fun _ -> []);
     extract = gemini_extract }
 
@@ -97,7 +101,7 @@ let execute ~(provider : provider) ~(transport : transport) (request : Yojson.Sa
       | resp -> Result.map pretty_if_json (provider.extract resp))
 
 (* Shell out to curl. The only piece not exercised by unit tests. *)
-let curl_transport ~(provider : provider) ~(api_key : string) : transport =
+let curl_transport ~(provider : provider) ~(model : string) ~(api_key : string) : transport =
  fun body ->
   let tmp = Filename.temp_file "promptc" ".json" in
   Fun.protect
@@ -113,7 +117,7 @@ let curl_transport ~(provider : provider) ~(api_key : string) : transport =
       in
       let cmd =
         String.concat " "
-          ([ "curl"; "-sS"; "-X"; "POST"; Filename.quote (provider.endpoint api_key) ]
+          ([ "curl"; "-sS"; "-X"; "POST"; Filename.quote (provider.endpoint ~model ~api_key) ]
           @ header_args
           @ [ "-d"; Filename.quote ("@" ^ tmp) ])
       in
