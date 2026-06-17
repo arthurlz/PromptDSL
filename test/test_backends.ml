@@ -371,6 +371,24 @@ let test_model_override () =
   Alcotest.(check string) "gemini default_model const" "gemini-2.5-flash"
     Backend_gemini.default_model
 
+(* compile_string / compile_request forward ?model to the OpenAI/Anthropic renderers. *)
+let test_compile_model () =
+  let open Yojson.Safe.Util in
+  (match Compile.compile_request ~model:"gpt-4o" {|agent "a" { goal "g" }|} with
+   | Error _ -> Alcotest.fail "compile_request failed"
+   | Ok j -> Alcotest.(check string) "req override" "gpt-4o" (j |> member "model" |> to_string));
+  (match Compile.compile_request {|agent "a" { goal "g" }|} with
+   | Error _ -> Alcotest.fail "compile_request failed"
+   | Ok j -> Alcotest.(check string) "req default" "gpt-4o-mini" (j |> member "model" |> to_string));
+  match
+    Compile.compile_string ~target:`Anthropic ~model:"claude-opus-4-8"
+      {|agent "a" { goal "g" }|}
+  with
+  | Compile.Failure _ -> Alcotest.fail "compile_string failed"
+  | Compile.Success o ->
+      Alcotest.(check string) "str override" "claude-opus-4-8"
+        (o.Compile.json |> member "model" |> to_string)
+
 let suite =
   ( "backends",
     [ Alcotest.test_case "prose" `Quick test_prose;
@@ -394,4 +412,5 @@ let suite =
       Alcotest.test_case "gemini range and list" `Quick test_gemini_range_and_list;
       Alcotest.test_case "compile_string target" `Quick test_compile_string_target;
       Alcotest.test_case "compile_request targets" `Quick test_compile_request_targets;
-      Alcotest.test_case "model override" `Quick test_model_override ] )
+      Alcotest.test_case "model override" `Quick test_model_override;
+      Alcotest.test_case "compile model" `Quick test_compile_model ] )

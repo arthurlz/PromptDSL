@@ -46,7 +46,7 @@ let parse_and_check ?(resolver = default_resolver) (src : string) :
   Result.map fst (frontend ~resolver src)
 
 let compile_string ?(values = []) ?(resolver = default_resolver)
-    ?(target : [ `OpenAI | `Anthropic | `Gemini ] = `OpenAI) (src : string) : outcome =
+    ?(target : [ `OpenAI | `Anthropic | `Gemini ] = `OpenAI) ?model (src : string) : outcome =
   match frontend ~resolver src with
   | Error ds -> Failure ds
   | Ok (checked, fragments) -> (
@@ -56,14 +56,14 @@ let compile_string ?(values = []) ?(resolver = default_resolver)
           let ir = Lower.lower bound in
           let json =
             match target with
-            | `OpenAI -> Backend_openai.render ir
-            | `Anthropic -> Backend_anthropic.render ir
+            | `OpenAI -> Backend_openai.render ?model ir
+            | `Anthropic -> Backend_anthropic.render ?model ir
             | `Gemini -> Backend_gemini.render ir
           in
           Success { prose = Backend_prose.render ir; json })
 
 let compile_request ?(values = []) ?(resolver = default_resolver)
-    ?(target : [ `OpenAI | `Anthropic | `Gemini ] = `OpenAI) (src : string) :
+    ?(target : [ `OpenAI | `Anthropic | `Gemini ] = `OpenAI) ?model (src : string) :
     (Yojson.Safe.t, Error.t list) result =
   match frontend ~resolver src with
   | Error ds -> Error ds
@@ -74,6 +74,6 @@ let compile_request ?(values = []) ?(resolver = default_resolver)
           let ir = Lower.lower bound in
           Ok
             (match target with
-             | `OpenAI -> Backend_openai.render ~no_content_user:"" ir
-             | `Anthropic -> Backend_anthropic.render ~no_content_user:"" ir
+             | `OpenAI -> Backend_openai.render ?model ~no_content_user:"" ir
+             | `Anthropic -> Backend_anthropic.render ?model ~no_content_user:"" ir
              | `Gemini -> Backend_gemini.render ~no_content_user:"" ir))
