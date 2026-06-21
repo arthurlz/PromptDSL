@@ -81,7 +81,7 @@ let test_generate_openai () =
 
 let test_generate_text_and_providers () =
   let text_ts = gen {|agent "a" { goal "g" output markdown }|} `OpenAI in
-  Alcotest.(check bool) "text returns string" true (contains text_ts "Promise<string>");
+  Alcotest.(check bool) "text returns named alias" true (contains text_ts "Promise<AOutput>");
   Alcotest.(check bool) "text no validator" false (contains text_ts "function validate");
   let anth = gen {|agent "a" { goal "g" }|} `Anthropic in
   Alcotest.(check bool) "anthropic header" true (contains anth "x-api-key");

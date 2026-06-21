@@ -246,7 +246,7 @@ let generate (checked : Sema.checked) (fragments : Resolve.fragments) ~(target :
   (match ir.Ir.out with
    | Ir.OJson (Some fields) -> p "%s" (gen_validator out_t fields)
    | _ -> ());
-  p "export async function %s(inputs: %s, apiKey?: string): Promise<%s> {" fn_name in_t out_ts;
+  p "export async function %s(inputs: %s, apiKey?: string): Promise<%s> {" fn_name in_t out_t;
   p "  const key = apiKey ?? (globalThis as any).process?.env?.%s ?? \"\";" (env_var target);
   p "  const body = %s;" (yojson_to_ts request);
   p "  const res = await fetch(%s, {" endpoint;
