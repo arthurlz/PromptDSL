@@ -76,3 +76,43 @@ let template_ir (checked : Sema.checked) (fragments : Resolve.fragments) : Ir.t 
   Lower.lower
     { Bind.b_name = checked.Sema.name; b_goal; b_steps;
       b_output = checked.Sema.output; b_content }
+
+(* --- request body: Yojson -> TS expression, holes -> ${inputs.name} --- *)
+
+(* Escape a string for inside a `...` template literal: \, `, and ${ . *)
+let esc_template (s : string) : string =
+  let b = Buffer.create (String.length s + 8) in
+  let n = String.length s in
+  let i = ref 0 in
+  while !i < n do
+    let c = s.[!i] in
+    if c = '\\' then Buffer.add_string b "\\\\"
+    else if c = '`' then Buffer.add_string b "\\`"
+    else if c = '$' && !i + 1 < n && s.[!i + 1] = '{' then Buffer.add_string b "\\$"
+    else Buffer.add_char b c;
+    incr i
+  done;
+  Buffer.contents b
+
+(* A string value -> a TS expression. If it has {{name}} holes, a template
+   literal with ${inputs.name}; otherwise a JSON string literal. *)
+let ts_string_expr (s : string) : string =
+  if Interp.refs s = [] then Yojson.Safe.to_string (`String s)
+  else
+    let body =
+      Interp.subst (fun name -> Some (Printf.sprintf "${inputs.%s}" name)) (esc_template s)
+    in
+    "`" ^ body ^ "`"
+
+let rec yojson_to_ts (j : Yojson.Safe.t) : string =
+  match j with
+  | `String s -> ts_string_expr s
+  | `Assoc kvs ->
+      "{ "
+      ^ String.concat ", "
+          (List.map
+             (fun (k, v) -> Yojson.Safe.to_string (`String k) ^ ": " ^ yojson_to_ts v)
+             kvs)
+      ^ " }"
+  | `List xs -> "[" ^ String.concat ", " (List.map yojson_to_ts xs) ^ "]"
+  | other -> Yojson.Safe.to_string other
