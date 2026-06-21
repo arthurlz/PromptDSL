@@ -116,3 +116,61 @@ let rec yojson_to_ts (j : Yojson.Safe.t) : string =
       ^ " }"
   | `List xs -> "[" ^ String.concat ", " (List.map yojson_to_ts xs) ^ "]"
   | other -> Yojson.Safe.to_string other
+
+(* --- output type --- *)
+
+let ts_output_type (out : Ir.output) : string =
+  match out with
+  | Ir.OText | Ir.OMarkdown -> "string"
+  | Ir.OJson None -> "unknown"
+  | Ir.OJson (Some fields) ->
+      let field (f : Ir.schema_field) =
+        Printf.sprintf "%s%s: %s" f.Ir.fname (if f.required then "" else "?")
+          (ts_of_schema_ty f.fty)
+      in
+      "{ " ^ String.concat "; " (List.map field fields) ^ " }"
+
+(* --- runtime validator --- *)
+
+(* Format a range bound as a TS number literal. *)
+let num (f : float) : string =
+  if Float.is_integer f then string_of_int (int_of_float f) else Printf.sprintf "%g" f
+
+(* Lines that throw if [acc] (assumed present) doesn't match [fty]/[range]. *)
+let rec check_lines (acc : string) (fty : Ir.schema_ty) (range : (float * float) option)
+    (label : string) : string list =
+  let err msg = Printf.sprintf "throw new Error(%s)" (Yojson.Safe.to_string (`String (label ^ ": " ^ msg))) in
+  match fty with
+  | Ir.SString -> [ Printf.sprintf "if (typeof %s !== \"string\") %s;" acc (err "expected string") ]
+  | Ir.SBool -> [ Printf.sprintf "if (typeof %s !== \"boolean\") %s;" acc (err "expected boolean") ]
+  | Ir.SInt | Ir.SFloat ->
+      let base = [ Printf.sprintf "if (typeof %s !== \"number\") %s;" acc (err "expected number") ] in
+      (match range with
+       | Some (lo, hi) ->
+           base @ [ Printf.sprintf "if (%s < %s || %s > %s) %s;" acc (num lo) acc (num hi) (err "out of range") ]
+       | None -> base)
+  | Ir.SEnum opts ->
+      let arr = "[" ^ String.concat ", " (List.map (fun o -> Yojson.Safe.to_string (`String o)) opts) ^ "]" in
+      [ Printf.sprintf "if (!%s.includes(%s)) %s;" arr acc (err "invalid enum value") ]
+  | Ir.SList t ->
+      let inner = check_lines "v" t None label in
+      [ Printf.sprintf "if (!Array.isArray(%s)) %s;" acc (err "expected array");
+        Printf.sprintf "for (const v of %s) { %s }" acc (String.concat " " inner) ]
+
+let gen_validator (tname : string) (fields : Ir.schema_field list) : string =
+  let block (f : Ir.schema_field) =
+    let acc = Printf.sprintf "x[%s]" (Yojson.Safe.to_string (`String f.Ir.fname)) in
+    let lines = check_lines acc f.fty f.range f.fname in
+    if f.required then
+      let presence =
+        Printf.sprintf "if (%s === undefined || %s === null) throw new Error(%s);" acc acc
+          (Yojson.Safe.to_string (`String (f.fname ^ ": required")))
+      in
+      "  " ^ String.concat "\n  " (presence :: lines)
+    else
+      Printf.sprintf "  if (%s !== undefined && %s !== null) {\n    %s\n  }" acc acc
+        (String.concat "\n    " lines)
+  in
+  Printf.sprintf "function validate%s(x: any): %s {\n%s\n  return x as %s;\n}" tname tname
+    (String.concat "\n" (List.map block fields))
+    tname

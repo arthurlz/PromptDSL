@@ -42,9 +42,27 @@ let test_body_emitter () =
   Alcotest.(check bool) "object keys quoted" true (contains o {|"a": 1|});
   Alcotest.(check bool) "array" true (contains o "[true]")
 
+let test_validator () =
+  let fields =
+    [ { Ir.fname = "rating"; fty = Ir.SEnum [ "buy"; "sell" ]; required = true; range = None };
+      { Ir.fname = "score"; fty = Ir.SInt; required = true; range = Some (0., 100.) };
+      { Ir.fname = "note"; fty = Ir.SString; required = false; range = None } ]
+  in
+  let v = Codegen_ts.gen_validator "FooOutput" fields in
+  Alcotest.(check bool) "fn header" true (contains v "function validateFooOutput(x: any): FooOutput");
+  Alcotest.(check bool) "enum check" true (contains v {|["buy", "sell"].includes|});
+  Alcotest.(check bool) "range check" true (contains v "x[\"score\"] < 0 || x[\"score\"] > 100");
+  Alcotest.(check bool) "optional guard" true (contains v {|x["note"] !== undefined|});
+  Alcotest.(check string) "object type"
+    "{ rating: \"buy\" | \"sell\"; score: number; note?: string }"
+    (Codegen_ts.ts_output_type (Ir.OJson (Some fields)));
+  Alcotest.(check string) "text type" "string" (Codegen_ts.ts_output_type Ir.OText);
+  Alcotest.(check string) "bare json type" "unknown" (Codegen_ts.ts_output_type (Ir.OJson None))
+
 let suite =
   ( "codegen",
     [ Alcotest.test_case "ts type mapping" `Quick test_ts_type_mapping;
       Alcotest.test_case "identifiers" `Quick test_identifiers;
       Alcotest.test_case "template ir holes" `Quick test_template_ir_holes;
-      Alcotest.test_case "body emitter" `Quick test_body_emitter ] )
+      Alcotest.test_case "body emitter" `Quick test_body_emitter;
+      Alcotest.test_case "validator" `Quick test_validator ] )
