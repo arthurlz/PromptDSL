@@ -70,7 +70,7 @@ let test_generate_openai () =
        output json { rating: enum("buy","sell") } }|}
   in
   let ts = gen src `OpenAI in
-  Alcotest.(check bool) "inputs type" true (contains ts "export interface ResearcherInputs");
+  Alcotest.(check bool) "inputs type" true (contains ts "export type ResearcherInputs");
   Alcotest.(check bool) "output type" true (contains ts "export type ResearcherOutput");
   Alcotest.(check bool) "fn signature" true
     (contains ts "export async function researcher(inputs: ResearcherInputs");

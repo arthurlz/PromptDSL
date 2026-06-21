@@ -26,6 +26,10 @@ let model_arg =
   let doc = "Model id to use, overriding the target's default (e.g. $(b,--model gpt-4o))." in
   Arg.(value & opt (some string) None & info [ "model" ] ~docv:"MODEL" ~doc)
 
+let output_arg =
+  let doc = "Write generated code to FILE instead of stdout." in
+  Arg.(value & opt (some string) None & info [ "output"; "o" ] ~docv:"FILE" ~doc)
+
 let compile_cmd =
   let doc = "Compile a .prompt file to a prompt and/or a provider request." in
   let term = Term.(const Driver.run_compile $ file_arg $ emit_arg $ set_arg $ target_arg $ model_arg) in
@@ -41,7 +45,12 @@ let run_cmd =
   let term = Term.(const Driver.run_run $ file_arg $ set_arg $ target_arg $ model_arg) in
   Cmd.v (Cmd.info "run" ~doc) term
 
+let codegen_cmd =
+  let doc = "Generate a typed TypeScript client for a .prompt file." in
+  let term = Term.(const Driver.run_codegen $ file_arg $ target_arg $ model_arg $ output_arg) in
+  Cmd.v (Cmd.info "codegen" ~doc) term
+
 let () =
   let doc = "A Prompt DSL compiler." in
   let info = Cmd.info "promptc" ~version:"0.1.0" ~doc in
-  exit (Cmd.eval' (Cmd.group info [ compile_cmd; check_cmd; run_cmd ]))
+  exit (Cmd.eval' (Cmd.group info [ compile_cmd; check_cmd; run_cmd; codegen_cmd ]))

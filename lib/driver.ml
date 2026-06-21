@@ -100,3 +100,21 @@ let run_compile (file : string) (emit : [ `Prose | `Json | `Both ]) (sets : stri
                    print_endline "=== JSON ===";
                    print_endline (Yojson.Safe.pretty_to_string o.Compile.json));
               0))
+
+let run_codegen (file : string) (target : [ `OpenAI | `Anthropic | `Gemini ])
+    (model : string option) (output : string option) : int =
+  match read_file file with
+  | exception Sys_error msg -> prerr_endline msg; 2
+  | src -> (
+      let resolver = fs_resolver (Filename.dirname file) in
+      match Compile.frontend ~resolver src with
+      | Error ds -> print_diags file ds; 1
+      | Ok (checked, fragments) ->
+          let ts = Codegen_ts.generate checked fragments ~target ~model in
+          (match output with
+           | None -> print_string ts
+           | Some path ->
+               let oc = open_out path in
+               output_string oc ts;
+               close_out oc);
+          0)
