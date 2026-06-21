@@ -59,10 +59,42 @@ let test_validator () =
   Alcotest.(check string) "text type" "string" (Codegen_ts.ts_output_type Ir.OText);
   Alcotest.(check string) "bare json type" "unknown" (Codegen_ts.ts_output_type (Ir.OJson None))
 
+let gen src target =
+  match Compile.frontend src with
+  | Error _ -> Alcotest.fail "frontend failed"
+  | Ok (checked, fragments) -> Codegen_ts.generate checked fragments ~target ~model:None
+
+let test_generate_openai () =
+  let src =
+    {|agent "researcher" { input { ticker: string } goal "analyze {{ticker}}"
+       output json { rating: enum("buy","sell") } }|}
+  in
+  let ts = gen src `OpenAI in
+  Alcotest.(check bool) "inputs type" true (contains ts "export interface ResearcherInputs");
+  Alcotest.(check bool) "output type" true (contains ts "export type ResearcherOutput");
+  Alcotest.(check bool) "fn signature" true
+    (contains ts "export async function researcher(inputs: ResearcherInputs");
+  Alcotest.(check bool) "validator called" true (contains ts "validateResearcherOutput(");
+  Alcotest.(check bool) "openai endpoint" true (contains ts "api.openai.com/v1/chat/completions");
+  Alcotest.(check bool) "openai auth" true (contains ts "Authorization");
+  Alcotest.(check bool) "interpolates input" true (contains ts "${inputs.ticker}")
+
+let test_generate_text_and_providers () =
+  let text_ts = gen {|agent "a" { goal "g" output markdown }|} `OpenAI in
+  Alcotest.(check bool) "text returns string" true (contains text_ts "Promise<string>");
+  Alcotest.(check bool) "text no validator" false (contains text_ts "function validate");
+  let anth = gen {|agent "a" { goal "g" }|} `Anthropic in
+  Alcotest.(check bool) "anthropic header" true (contains anth "x-api-key");
+  Alcotest.(check bool) "anthropic version" true (contains anth "anthropic-version");
+  let gem = gen {|agent "a" { goal "g" }|} `Gemini in
+  Alcotest.(check bool) "gemini model in url" true (contains gem "models/gemini-2.5-flash:generateContent")
+
 let suite =
   ( "codegen",
     [ Alcotest.test_case "ts type mapping" `Quick test_ts_type_mapping;
       Alcotest.test_case "identifiers" `Quick test_identifiers;
       Alcotest.test_case "template ir holes" `Quick test_template_ir_holes;
       Alcotest.test_case "body emitter" `Quick test_body_emitter;
-      Alcotest.test_case "validator" `Quick test_validator ] )
+      Alcotest.test_case "validator" `Quick test_validator;
+      Alcotest.test_case "generate openai" `Quick test_generate_openai;
+      Alcotest.test_case "generate text+providers" `Quick test_generate_text_and_providers ] )
