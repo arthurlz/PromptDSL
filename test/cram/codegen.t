@@ -7,9 +7,7 @@ Generate a typed TypeScript client (OpenAI default target):
 
 Codegen for a bad target is a usage error:
 
-  $ promptc codegen researcher.prompt --target bogus
-  Usage: promptc codegen [--help] [--model=MODEL] [--output=FILE]
-         [--target=PROVIDER] [OPTION]… FILE
+  $ promptc codegen researcher.prompt --target bogus >out 2>&1; code=$?; tr -d "'" < out | sed -n '/^promptc: option /,/^[[:space:]]*anthropic or gemini$/p'; echo "[$code]"
   promptc: option --target: invalid value bogus, expected one of openai,
            anthropic or gemini
   [124]
